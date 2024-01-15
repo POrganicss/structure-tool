@@ -1,0 +1,8 @@
+{
+    "python.analysis.extraPaths": [
+        "./Organic/Format",
+        "./Organic/Tool",
+        "./Organic/Applications",
+        "./Organic/resources"
+    ]
+}
