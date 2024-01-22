@@ -3,9 +3,9 @@ import __init__
 from Xyz import *
 import matplotlib.pyplot as plt
 import numpy as np
-from Datatransmission import *
-from Compute import *
-from Draw import Draw
+from Tool.Datatransmission import *
+from Tool.Compute import *
+from Tool.Draw import Draw
 class Log:
     elements = {1: 'H', 2: 'He', 3: 'Li', 4: 'Be', 5: 'B', 6: 'C',
             7: 'N', 8: 'O', 9: 'F', 10: 'Ne', 11: 'Na', 12: 'Mg',

@@ -1,12 +1,12 @@
 import __init__
 from Tool.Compute import *
 from Tool.Verify import Verify
-from Format.Gjf import *
 from Tool.File import *
-from openbabel import openbabel
 from Tool.Code import *
+from Gjf import *
+from openbabel import openbabel
 from scipy.spatial.distance import cdist
-import math
+
 
 
 import numpy as np
