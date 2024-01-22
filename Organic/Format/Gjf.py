@@ -1,18 +1,19 @@
 import __init__
 from tkinter import messagebox
-from File import *
 from Tool.Code import Code
 from Tool.Verify import Verify
 
 class Gjf:
     #所有的参数：name,mem,nproc,code,mixset
+    #其中基组的存储形式sets=[[['C'，'H','O'],'6-31g'],[['Pd'],'SDD']]
+    #读取形式：elements=[['C'，'H','O'],['Pd']],mixset=['6-31g','SDD']
     
     # 从gjf中获取xyz坐标文件
     @staticmethod
     def toxyz(gjf):
         lines = gjf.splitlines()  # 将输入数据拆分为行
         xyzs = []
-        xyz = []  # 初始化存储容器，用来存储xyz结果的list容器
+        xyz = []  
         for line in lines:
             string = line.split()
             if len(string) == 4 and not Verify.isnum(string[0]) and Verify.isnums(string[1:4]):
@@ -25,78 +26,51 @@ class Gjf:
         else:
             return xyzs
 
-    # 获取gjf中的所有参数
+    # 从gjf中获取除坐标外的所有参数
     def getcode(gjf):
         
-        print()
-    
-    def getparameters(gjf):
+        def get_functional(chunk):
+            readline=chunk.splitlines()
+            paramenters = {}
+            for line in readline:
+                line = line.strip()
+                if '%chk' in line:
+                    paramenters['name'] = line.split("=")[1].split(".")[0]
+                elif '%mem' in line:
+                    paramenters['mem'] = line.split("=")[1]
+                elif '%nproc' in line:
+                    paramenters['nproc'] = line.split("=")[1]
+                elif '%cpu' in line:
+                    paramenters['cpu'] = line.split("=")[1]
+                elif '#' in line:
+                    paramenters['code'] = line
+                elif len(line.split()) == 2 and Verify.isnums(line.split()):
+                    paramenters['charge'] = line.split()[0]
+                    paramenters['spin'] = line.split()[1]
+            return paramenters
+     
+        def get_mixset(chunk):
+            lines=chunk.strip().splitlines()
+            
+            elements=[]#存储类似elements=[['C'，'H','O'],['Pd']]
+            MIXSET=[]#存储类似mixset=['6-31g','SDD']
+            
+            elements.append(lines[0].split())
+            elements[0].remove('0')
+            MIXSET.append(lines[1])
+            
+            for i in range(1, int(len(lines)/3)):
+                element = lines[i*3].split()
+                element.remove('0')
+                elements.append(element)
+                MIXSET.append(lines[i*3+1])
+            
+            return {'mixset':[[elements[0],MIXSET[0]],[elements[1],MIXSET[1]]]}
+        
         chunk=gjf.replace('\n\n\n','\n\n').split('\n\n')
+        Header=chunk[0]+'\n'+chunk[2].splitlines()[0]+'\n'
+        Footer=chunk[3]
         para = {}
-        if len(chunk[0].splitlines())>3:
-            para.update(Gjf.getfunctional(chunk[0]))
-        else:
-            messagebox.showinfo('gjf文件错误,命令行少于3行')
-            
-        if len(chunk[2].splitlines()) > 1:
-            para.update(Gjf.getchargeandspin(chunk[2]))
-        else:
-            messagebox.showinfo('gjf文件错误,未发现电荷和自旋多重度')
-        if len(chunk)>4:
-            paramenters, sets=Gjf.getmixset(chunk[3])
-            para.update(paramenters)
-            para['code'] = para['code'].replace('genecp',sets)
-        else:
-            para['mixset']=''
-        para.update(Code.tocode(para['code']))
-        del para['code']
+        para.update(get_functional(Header))
+        para.update(get_mixset(Footer))
         return para
-    
-    def getfunctional(chunk):
-        readline=chunk.splitlines()
-        paramenters = {}
-        for i, line in enumerate(readline):
-            line = line.strip()
-            if '%chk' in line:
-                paramenters['name'] = line.split("=")[1].split(".")[0]
-            elif '%mem' in line:
-                paramenters['mem'] = line.split("=")[1]
-            elif '%nproc' in line:
-                paramenters['nproc'] = line.split("=")[1]
-            elif '#' in line:
-                paramenters['code'] = line
-        return paramenters
-         
-    def getchargeandspin(chunk):
-        readline=chunk.splitlines()
-        paramenters = {}
-        for line in readline:
-            if len(line.split()) == 2 and Gjf.isnums(line.split()):
-                paramenters['charge'] = line.split()[0]
-                paramenters['spin'] = line.split()[1]
-        return paramenters
-    
-    def getmixset(chunk):
-        readline=chunk.splitlines()
-        sets = readline[1]
-        
-        paramenters = {}
-        
-        elements=[]
-        MIXSET=[]
-        for i in range(1, int(len(readline)/3)):
-            element = readline[i*3].split()
-            element.remove('0')
-            elements.append(element)
-            MIXSET.append(readline[i*3+1])
-        elements.append(MIXSET)
-        paramenters['mixset'] = elements
-            
-        return paramenters, sets
-    
-    # 获取gjf中的其他参数
-    def getname(gjf, name):
-        readline = gjf.splitlines()
-        for line in readline:
-            if name in line:
-                return line

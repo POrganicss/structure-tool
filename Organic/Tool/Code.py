@@ -1,18 +1,14 @@
-import os
-import sys
-path = os.getcwd()
-path = path.replace("\\", "/")+'/Organic'
-sys.path.append(path+'/Format')
-sys.path.append(path+'/Tool')
-sys.path.append(path+'/Applications')
-sys.path.append(path+'/Functions')
+import __init__
 import datetime
 import re
 import math
 
+
+#提供gaussian运算参数的设置
 class Code:
 
     # 根据函数输出生成命令代码
+    @staticmethod
     def set(nproc=16, mem='55GB', name='proj', charge=0, spin='1', opt='calcfc', method='B3LYP/6-31g', additional='', solvent='',mixset=''):
         
         code = {'opt': opt, 'method': method,

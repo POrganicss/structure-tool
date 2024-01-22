@@ -1,87 +1,156 @@
-from File import *
+import __init__
+from Tool.File import *
 from openbabel import openbabel
 import re
 from rdkit.Chem import AllChem
 from rdkit import Chem
-import os
-import sys
-path = os.getcwd()
-path = path.replace("\\", "/")+'/Organic'
-sys.path.append(path+'/Format/')
-sys.path.append(path+'/Tool/')
-sys.path.append(path+'/Applications/')
-sys.path.append(path+'/Functions/')
-
-
+from openbabel import OBMol, OBConversion
 class Smile:
 
-    # smile左侧切出一个小单元结构
-    def smile_unit(smile):
-        unit = []
-        prefixs = ["=", "/", "\\", "@"]
-        elements = ["Si", "Cl", "Br", "C", "N", "O", "F", "P", "S", "I"]
-        suffixsnumber = r"\d+"  # 数字
+    '''   # 将smile分解成小单元
+    def smile_divides(smile):
+        def smile_unit(smile):
+            unit = []
+            prefixs = ["=", "/", "\\", "@"]
+            elements = ["Si", "Cl", "Br", "C", "N", "O", "F", "P", "S", "I"]
+            suffixsnumber = r"\d+"  # 数字
 
-        # 匹配键型
-        for prefix in prefixs:
-            if smile.find(prefix) == 0:
-                unit.append(prefix)
-                smile = smile.replace(prefix, "", 1)
-                break
+            def match_and_append(pattern, s):
+                match = re.match(pattern, s)
+                if match:
+                    unit.append(match.group(0))
+                    return s.replace(match.group(0), "", 1), True
+                return s, False
 
-        # 匹配元素
-        for element in elements:
-            if smile.find(element) == 0:
-                unit.append(element)
-                smile = smile.replace(element, "", 1)
-                break
-
-        # 匹配键型
-        for prefix in prefixs:
-            if smile.find(prefix) == 0:
-                number = re.match(suffixsnumber, smile[1])
-                if number is not None:
+            # 匹配键型
+            for prefix in prefixs:
+                if smile.startswith(prefix):
                     unit.append(prefix)
-                    smile = smile.replace(prefix, "", 1)
+                    smile = smile[len(prefix):]
                     break
 
-        # 匹配后缀数字
-        number = re.match(suffixsnumber, smile)
-        if number is not None:
-            unit.append(number.group(0))
-            smile = smile.replace(number.group(0), "", 1)
+            # 匹配元素
+            for element in elements:
+                if smile.startswith(element):
+                    unit.append(element)
+                    smile = smile[len(element):]
+                    break
 
-        # 匹配后缀括号部分
-        while smile.find("(") == 0:
-            bracket = []
-            bracket.append(smile[0])
-            smile = smile.replace(smile[0], "", 1)
-            i = 1
-            while i > 0:
-                if smile.find("(") == 0:
-                    bracket.append(smile[0])
-                    smile = smile.replace(smile[0], "", 1)
-                    i = i + 1
-                elif smile.find(")") == 0:
-                    bracket.append(smile[0])
-                    smile = smile.replace(smile[0], "", 1)
-                    i = i - 1
-                else:
-                    bracket.append(smile[0])
-                    smile = smile.replace(smile[0], "", 1)
-            unit.append("".join(bracket))
-        return "".join(unit), smile
+            # 匹配键型
+            for prefix in prefixs:
+                if smile.startswith(prefix):
+                    smile, matched = match_and_append(suffixsnumber, smile[1:])
+                    if matched:
+                        unit.append(prefix)
+                        break
 
-    # 将smile分解成小单元
-    def smile_divide(smile):
+            # 匹配后缀数字
+            smile, matched = match_and_append(suffixsnumber, smile)
+            if not matched:
+                # 匹配后缀括号部分
+                while smile.startswith("("):
+                    bracket = []
+                    bracket.append(smile[0])
+                    smile = smile[1:]
+                    i = 1
+                    while i > 0:
+                        if smile.startswith("("):
+                            bracket.append(smile[0])
+                            smile = smile[1:]
+                            i = i + 1
+                        elif smile.startswith(")"):
+                            bracket.append(smile[0])
+                            smile = smile[1:]
+                            i = i - 1
+                        else:
+                            bracket.append(smile[0])
+                            smile = smile[1:]
+                    unit.append("".join(bracket))
+
+            return "".join(unit), smile
         smile_units = []
-        while smile != "":
-            smile_unit, smile = Smile.smile_unit(smile)
-            smile_units.append(smile_unit)
-            if smile == "":
-                break
+        while smile:
+            unit, smile = smile_unit(smile)
+            smile_units.append(unit)
         return smile_units
+     '''
+    
+    def smile_divide(smile):
+        def smile_unit(smile):
+            unit = []
+            prefixes = ["=", "/", "\\", "@"]
+            elements = ["Si", "Cl", "Br", "C", "N", "O", "F", "P", "S", "I"]
+            suffixsnumber = r"\d+"
+            chirality = "@@|@|\\|/"  # 添加手性表示
 
+            def match_and_append(pattern, s):
+                match = re.match(pattern, s)
+                if match:
+                    unit.append(match.group(0))
+                    return s.replace(match.group(0), "", 1), True
+                return s, False
+
+            # 匹配键型
+            for prefix in prefixes:
+                if smile.startswith(prefix):
+                    unit.append(prefix)
+                    smile = smile[len(prefix):]
+                    break
+
+            # 匹配元素
+            for element in elements:
+                if smile.startswith(element):
+                    unit.append(element)
+                    smile = smile[len(element):]
+                    break
+
+            # 匹配手性
+            for chir in chirality.split('|'):
+                if smile.startswith(chir):
+                    unit.append(chir)
+                    smile = smile[len(chir):]
+                    break
+
+            # 匹配键型
+            for prefix in prefixes:
+                if smile.startswith(prefix):
+                    smile, matched = match_and_append(suffixsnumber, smile[1:])
+                    if matched:
+                        unit.append(prefix)
+                        break
+
+            # 匹配后缀数字
+            smile, matched = match_and_append(suffixsnumber, smile)
+            if not matched:
+                # 匹配后缀括号部分
+                while smile.startswith("("):
+                    bracket = []
+                    bracket.append(smile[0])
+                    smile = smile[1:]
+                    i = 1
+                    while i > 0:
+                        if smile.startswith("("):
+                            bracket.append(smile[0])
+                            smile = smile[1:]
+                            i = i + 1
+                        elif smile.startswith(")"):
+                            bracket.append(smile[0])
+                            smile = smile[1:]
+                            i = i - 1
+                        else:
+                            bracket.append(smile[0])
+                            smile = smile[1:]
+                    unit.append("".join(bracket))
+
+            return "".join(unit), smile
+
+        smile_units = []
+        while smile:
+            unit, smile = smile_unit(smile)
+            smile_units.append(unit)
+        return smile_units
+    
+        
     # 选择性对分子碎片加括号
     def addbracket(Fragment, bracket):
         if Fragment != "" and bracket == 1:
@@ -148,8 +217,8 @@ class Smile:
         return Result
 
     # 将smiles转换成xyz文件
-    def toxyz(smile):
-        print(smile)
+    def rdkitoxyz(smile):
+        
         moldh = Chem.MolFromSmiles(smile)
 
         # 补上所有氢原子
@@ -170,20 +239,53 @@ class Smile:
         return "\n".join(xyzs[2:])
 
     def openbabeltoxyz(smile):
-        File.tofile(smile, path+'/temp02.smi')
+        try:
+            # Create an OBMol object and set the input SMILES
+            mol = OBMol()
+            mol.SetData(smile)
 
-        conv = openbabel.OBConversion()  # 使用openbabel模块中的OBConversion函数，用于文件格式转换的
+            # Perform conversion using Open Babel
+            conv = OBConversion()
+            conv.SetInAndOutFormats("smi", "xyz")
+            xyz_data = conv.WriteString(mol)
+            
+            return xyz_data
 
-        # 输入需要转换的文件的名字，以及定义转换后文件的文件名
-        conv.OpenInAndOutFiles(path+'/temp02.smi', path+'/temp02.xyz')
-        conv.SetInAndOutFormats("smi", "xyz")  # 定义转换文件前后的格式
-        conv.Convert()  # 执行转换操作
-        conv.CloseOutFile()  # 转换完成后关闭转换后的文件，完成转换
+        except Exception as e:
+            print(str(smile)+'无法转换成xyz坐标')
+            # Handle exceptions and provide useful error information
+            return f"Error during conversion: {str(e)}"
 
-        xyz = File.getdata(path+'/temp02.xyz')
-        os.remove(path+'/temp02.xyz')
-        return xyz
+    def rdkitosdf(smile):
+        mol = Chem.MolFromSmiles(smile)
 
+        if mol is not None:
+            # Generate 3D coordinates
+            AllChem.Compute2DCoords(mol)
+            AllChem.EmbedMolecule(mol, randomSeed=42)
+
+            # Convert molecule to SDF format string
+            sdf_string = Chem.MolToMolBlock(mol)
+
+            return sdf_string
+        else:
+            return "Invalid SMILES input."
+    
+    def openbabeltosdf(smile):
+        # 创建一个 Open Babel 分子对象
+        ob_mol = openbabel.OBMol()
+        
+        # 将 SMILES 转换为 Open Babel 分子对象
+        conv = openbabel.OBConversion()
+        conv.SetInAndOutFormats("smi", "sdf")
+        conv.ReadString(ob_mol, smile)
+
+        # 将 Open Babel 分子对象转换为 SDF 格式字符串
+        sdf_string = conv.WriteString(ob_mol)
+
+        return sdf_string
+    
+    
     # 将一些smiles转换成xyz文件
     def toxyzs(smiles):
         xyzs = []
@@ -327,42 +429,8 @@ class Smile:
             ]
         return fragment
 
-    def SmilesToSdf(smiles, names, ind=0):
-        mols = []
-
-        for i in range(len(smiles)):
-            moldh = Chem.MolFromSmiles(smiles[i])
-
-            try:
-                mol = Chem.AddHs(moldh)
-            except Exception as e:
-                print(smiles[i] + "\n")
-                print(e)
-
-            # 生成初始3D构象
-            AllChem.EmbedMolecule(mol, randomSeed=1)
-
-            # 利用分子力场方法进行能量最小化优化
-
-            AllChem.MMFFOptimizeMolecule(mol)
-            mols.append(mol)
-
-        """ writer = Chem.SDWriter('CS'+str(ind)+'.sdf')
-        writer.SetProps(['LOGP', 'MW'])
-    
-        for i, mol in enumerate(mols):
-            mw = Descriptors.ExactMolWt(mol)
-            logp = Descriptors.MolLogP(mol)
-            mol.SetProp('MW', '%.2f' %(mw))
-            mol.SetProp('LOGP', '%.2f' %(logp))
-            mol.SetProp('_Name', 'cs'+names[i])
-            writer.write(mol)
-        writer.close() """
-
-        return mols
-
     def getbrackets(number):
         li = []
-        for i in range(number):
+        for _ in range(number):
             li.append(1)
         return li

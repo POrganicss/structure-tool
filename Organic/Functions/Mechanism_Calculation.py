@@ -1,13 +1,5 @@
-import os
-import sys
+import __init__
 
-path = os.getcwd()
-path = path.replace("\\", "/")+'/Organic'
-sys.path.append(path+'/Format')
-sys.path.append(path+'/Tool')
-sys.path.append(path+'/Applications')
-sys.path.append(path+'/Functions')
-sys.path.append(path+'/resources')
 from tqdm import tqdm
 from Data import *
 from Verify import *

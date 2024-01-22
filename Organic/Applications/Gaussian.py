@@ -1,4 +1,4 @@
-#和Gaussian自动化运算相关的命令
+
 import __init__
 
 from Format.Gjf import *

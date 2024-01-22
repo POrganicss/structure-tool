@@ -1,11 +1,12 @@
 import math
-import mplcursors
 import numpy as np
-import matplotlib.pyplot as plt
 import sympy as sp
-import multiprocessing as mp
+from scipy.spatial.transform import Rotation
+from scipy.interpolate import interp1d
+from scipy.misc import derivative
+from scipy.integrate import cumtrapz
 
-
+#提供数学的计算工具
 class Compute:
 
     # 获取任意两个原子间的距离
@@ -67,6 +68,67 @@ class Compute:
         # 调整夹角范围
         dihedral_angle_deg = (dihedral_angle_deg + 180.0) % 360.0 - 180.0
         return dihedral_angle_deg
+    
+        
+    def align_complex_structure(simple_coords, simple_connectivity_matrix, complex_coords, complex_connectivity_matrix, core_indices, adjusted_core_coords):
+                
+        def calculate_rotation_matrix(source, target):
+            # 计算旋转矩阵
+            rotation_matrix, _ = Rotation.align_vectors(source, target)
+            return rotation_matrix.as_matrix()
+                
+        # 提取核心区域的坐标
+        simple_core_coords = simple_coords[core_indices]
+        complex_core_coords = complex_coords[core_indices]
+
+        # 计算质心
+        simple_center = np.mean(simple_core_coords, axis=0)
+        complex_center = np.mean(complex_core_coords, axis=0)
+
+        # 平移，使得质心重合
+        translation_vector = complex_center - simple_center
+        complex_coords = complex_coords.astype(np.float64) - translation_vector
+
+        # 计算旋转矩阵
+        rotation_matrix = calculate_rotation_matrix(simple_core_coords, complex_core_coords)
+
+        # 应用平移和旋转到整个复杂结构
+        aligned_complex_coords = np.dot(complex_coords - complex_center, rotation_matrix.T) + simple_center
+
+        # 将核心区域调整为新的坐标
+        aligned_complex_coords[core_indices] = adjusted_core_coords
+
+        return aligned_complex_coords
+    
+    # 计算数据的一阶导数 
+    def getderivative(y, dx=1):
+        """
+        计算给定数据点的数值导数，假设x值是等间距的。
+
+        :param y: 输入数据点的y坐标，numpy数组形式
+        :param dx: x值之间的间隔，默认为1
+        :return: 导数值的numpy数组
+        """
+        x = np.arange(len(y)) * dx
+        f = interp1d(x, y, kind='cubic', fill_value="extrapolate")
+        dydx = np.array([derivative(f, xi, dx=1e-6) for xi in x])
+        
+        return dydx
+
+    def getantiderivative(y, dx=1):
+        """
+        计算给定数据点的数值原函数，假设x值是等间距的。
+
+        :param y: 输入数据点的y坐标，numpy数组形式
+        :param dx: x值之间的间隔，默认为1
+        :return: 原函数值的numpy数组
+        """
+        x = np.arange(len(y)) * dx
+        Y_int = cumtrapz(y, x, initial=0)
+        
+        return Y_int
+        
+    
     
     def integrate_derivative(derivative_data, initial_value=0):
         original_data = [initial_value]
@@ -166,3 +228,6 @@ class Compute:
                         del args[2][i+1]
         print(len(args[0]))
         return args
+
+
+

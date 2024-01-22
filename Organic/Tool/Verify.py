@@ -1,5 +1,5 @@
 
-
+#提供数据验证功能
 class Verify:
     
     def Is(elemnet,format):

@@ -1,13 +1,6 @@
-import os
-import sys
-path = os.path.dirname(__file__).replace('\Tool', '').replace('/Tool', '').replace('\\', '/')
-sys.path.append(path+'/Tool')
-sys.path.append(path+'/Applications')
-sys.path.append(path+'/Functions')
 
-
+#提供数据的读取和保存
 class File:
-
     #保存文件；filename:路径+文件名; content:输出的文本内容
     def tofile(filename='test', *args):
         from openbabel import openbabel

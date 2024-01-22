@@ -1,17 +1,10 @@
-import os
-import sys
-path = os.getcwd()
-path = path.replace("\\", "/")+'/Organic'
-sys.path.append(path+'/Format')
-sys.path.append(path+'/Tool')
-sys.path.append(path+'/Applications')
-sys.path.append(path+'/Functions')
-from Compute import *
-from Verify import Verify
-from Gjf import *
-from File import *
+import __init__
+from Tool.Compute import *
+from Tool.Verify import Verify
+from Format.Gjf import *
+from Tool.File import *
 from openbabel import openbabel
-from Code import *
+from Tool.Code import *
 from scipy.spatial.distance import cdist
 import math
 

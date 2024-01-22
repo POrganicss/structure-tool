@@ -1,0 +1,25 @@
+# gromacs_py build:
+build
+build/**
+
+dist
+dist/**
+
+# Test output:
+tmp
+tmp/**
+
+# Build
+gromacs_py.egg-info
+gromacs_py.egg-info/**
+
+# Twine Build
+dist
+dist/**
+
+# Notebook Data:
+gromacs_py/doc/notebook/.ipynb_checkpoints
+gromacs_py/doc/notebook/data_sim
+gromacs_py/doc/notebook/data_sim/*
+
+__pycache__

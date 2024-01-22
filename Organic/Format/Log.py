@@ -1,12 +1,5 @@
-import os
-import sys
+import __init__
 
-path=os.getcwd()
-path = path.replace("\\", "/")+'/Organic'
-sys.path.append(path+'/Format')
-sys.path.append(path+'/Tool')
-sys.path.append(path+'/Applications')
-sys.path.append(path+'/Functions')
 from Xyz import *
 import matplotlib.pyplot as plt
 import numpy as np
@@ -24,6 +17,7 @@ class Log:
             53: 'I', 55: 'Cs', 74: 'W', 75: 'Re', 77: 'Ir',
             78: 'Pt', 79: 'Au', 82: 'Pb'}
     #获取log中所有标准坐标文件
+    
     def getxyzs(log):
         xyzs=[]
         current_xyz = []
@@ -53,23 +47,25 @@ class Log:
     def toxyz(log,index=-1):
         return Log.getxyzs(log)[index]
     
-    #获取log中初始参数
-    def getparameters(log):
-        rline = log.splitlines()
-        paramenters={}
-        for j in range(len(rline)):  
-            if '%mem' in rline[j]:
-                paramenters['mem']=rline[j].split("=")[1].strip()
-            elif '%cpu' in rline[j]:
-                paramenters['cpu']=rline[j].split("=")[1].strip()
-            elif '#' in rline[j]:
-                paramenters['code']=rline[j].strip()
-            elif 'Multiplicity =' in rline[j] and ' Charge = ' in rline[j] :
-                paramenters['charge'] = rline[j].split()[2].strip()
-                paramenters['spin'] = rline[j].split()[5].strip()
-            elif ' Input=' in rline[j]:
-                paramenters['name']=rline[j].split("=")[1].strip()[:-4]
-        return paramenters
+    def getcode(log):
+        lines = log.splitlines()
+        para = {}
+        for line in lines:
+            if '%mem' in line:
+                para['mem']=line.split("=")[1].strip()
+            elif '%cpu' in line:
+                para['cpu']=line.split("=")[1].strip()
+            elif '%nproc' in line or '%nprocshared' in line:
+                    para['nproc']=line.split("=")[1].strip()
+            elif '#' in line:
+                para['code']=line.strip()
+            elif 'Multiplicity =' in line and ' Charge = ' in line :
+                para['charge'] = line.split()[2].strip()
+                para['spin'] = line.split()[5].strip()
+            elif ' Input=' in line:
+                para['name']=line.split("=")[1].strip()[:-4]
+             
+    
                 
     #获取gaussian运行时的参数
     def getopearationinformations(log):

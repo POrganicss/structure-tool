@@ -1,0 +1,4 @@
+ignore:
+  - "gromacs_py/template"  # ignore folders and all its contents
+  - "gromacs_py/test_files" # glob accepted
+  - "docs"

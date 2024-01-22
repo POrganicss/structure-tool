@@ -1,0 +1,12 @@
+pandas
+matplotlib
+sphinx-argparse
+sphinx_rtd_theme
+nbsphinx
+pytest
+codecov
+pytest-cov
+os_command_py==1.1.0
+pdb_manip_py==1.4.2
+tqdm
+alchemlyb

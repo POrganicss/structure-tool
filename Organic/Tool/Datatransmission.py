@@ -1,6 +1,8 @@
 import paramiko
 import subprocess
 from gromacs_py import *
+
+#通过SSH进行数据和文件的传输
 class Datatransmission:
     def Commandtransmission(content):
         ssh = paramiko.SSHClient()
@@ -11,7 +13,6 @@ class Datatransmission:
         out=stdout.read().decode()
         err=stderr.read().decode()
         ssh.close()
-
 
     def Command(content):
                                                 # 使用Popen创建进程，并与进程进行复杂的交互

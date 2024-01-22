@@ -1,0 +1,11 @@
+sphinx>=3.0
+sphinx-argparse>=0.2.5
+sphinx_rtd_theme>=0.5
+nbsphinx>=0.8.7
+pygments>=2.4.1
+pandas
+matplotlib
+os_command_py==1.1.0
+pdb2pqr
+pdb_manip_py==1.4.1
+ipython

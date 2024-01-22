@@ -1,13 +1,11 @@
-import sys
-sys.path.append('C:\\Users\\10282\\gitee\\structure-tool\\Organic\\Format')
 from matplotlib import pyplot as plt
 import mplcursors
 import numpy as np
 from openbabel import openbabel as ob
 from rdkit import Chem
 from rdkit.Chem import AllChem
-from Smile import *
-from Xyz import *
+
+#提供绘图工具
 class Draw:
     
     def draw_PESC(data, ENERGY_LEVEL_LENGTH=8.1, LINE_LENGTH=12.0):

@@ -1,7 +1,13 @@
 import __init__
-from Tool.Verify import Verify as vf
+from Tool.Compute import Compute
+from Tool.Draw import Draw
 
+import numpy as np
 
-a='1.877'
+y=np.arange(100)
 
-print(vf.isnum(a))
+dy=Compute.getderivative(y)
+
+sy=Compute.getantiderivative(y)
+
+Draw.draw_line(dy)
