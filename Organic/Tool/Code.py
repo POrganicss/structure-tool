@@ -27,14 +27,9 @@ class Code:
                  'charge': str(para['charge']), 'spin': str(para['spin']), 'method': para['method']
                  }
         fpara['code'] = Code.getcode(para)
-
         return fpara
+    
         
-        
-        
-        
-        
-
     # 根据参数字典生成命令代码
     def getcode(code:dict):
         Code = '# '
