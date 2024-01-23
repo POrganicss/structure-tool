@@ -1,32 +1,16 @@
 # StructureTool
 
-#### 介绍
-{**以下是 Gitee 平台说明，您可以替换此简介**
-Gitee 是 OSCHINA 推出的基于 Git 的代码托管平台（同时支持 SVN）。专为开发者提供稳定、高效、安全的云端软件开发协作平台
-无论是个人、团队、或是企业，都能够用 Gitee 实现代码托管、项目管理、协作开发。企业项目请看 [https://gitee.com/enterprises](https://gitee.com/enterprises)}
+代码介绍
+该代码主要用于实现以下功能：
+  1.根据分子骨架定向生成小分子库。
+  2.辅助Gaussian进行机理计算。
+  3.进行自动分子对接。（待开发）
+  4.进行自动Gromacs分子动力学模拟。（待开发）
 
-#### 软件架构
-软件架构说明
+ 软件架构
+![image](https://github.com/POrganicss/structure-tool/assets/144378298/4d1b89a4-cd96-42c3-878f-655b9d1249c7)
 
 
-#### 安装教程
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### 使用说明
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### 参与贡献
-
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
 
 
 #### 特技
