@@ -1,9 +1,4 @@
 import __init__
-
-from Xyz import *
-import matplotlib.pyplot as plt
-import numpy as np
-from Tool.Datatransmission import *
 from Tool.Compute import *
 from Tool.Draw import Draw
 class Log:
@@ -65,10 +60,8 @@ class Log:
             elif ' Input=' in line:
                 para['name']=line.split("=")[1].strip()[:-4]
              
-    
-                
     #获取gaussian运行时的参数
-    def getopearationinformations(log):
+    def getinfo(log):
         Information={}
         
         Information['SPE']=[]             #单点能
@@ -146,7 +139,7 @@ class Log:
     
     def getdraw(log,babel):
         # 从日志获取操作信息
-        Info = Log.getopearationinformations(log)
+        Info = Log.getinfo(log)
         data = Info[babel]
         if len(data)==0:
             print('没有该参数')

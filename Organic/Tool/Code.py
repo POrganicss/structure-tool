@@ -1,4 +1,3 @@
-import __init__
 import datetime
 import re
 import math
@@ -30,17 +29,11 @@ class Code:
         fpara['code'] = Code.getcode(para)
 
         return fpara
-    
-    def getpara(nproc='16', mem='55GB', name='proj', charge=0, spin='1', opt='calcfc', method='B3LYP/6-31g', additional='', solvent=''):
         
-        code = {'opt': opt, 'method': method,
-                'solvent': solvent, 'additional': additional}
-
-        para = {'nproc': str(nproc), 'mem': mem, 'name': name,
-                'charge': str(charge), 'spin': str(spin),
-                'code': Code.getcode(code)}
-        return para
-    
+        
+        
+        
+        
 
     # 根据参数字典生成命令代码
     def getcode(code:dict):
@@ -276,7 +269,7 @@ class Code:
         return sets, s
 
     # 获取文件名
-    def getname(name):
+    def getname(name,para):
         date = str(datetime.date.today()).split('-')
         name_postfix = date[0][2:]+date[1]+date[2]
         return name[0]+name_postfix+str(name[1])

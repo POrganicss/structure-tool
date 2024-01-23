@@ -6,30 +6,25 @@ from Tool.Code import *
 from Gjf import *
 from openbabel import openbabel
 from scipy.spatial.distance import cdist
-
-
-
 import numpy as np
-
-
 
 class Xyz:
 
-    # 根据xyz坐标获取gjf文件
-    def togjf(xyzs, paramenters):
+    # 根据xyz坐标获取gjf文件mixset=[]
+    def togjf(xyzs, para):
         g16_input = []
-        g16_input.append('%chk='+paramenters['name']+'.chk\n')
-        g16_input.append('%nproc='+str(paramenters['nproc'])+"\n")
-        g16_input.append("%mem=" + paramenters['mem']+"\n")
-        g16_input.append(paramenters['code']+"\n")
+        g16_input.append('%chk='+para['name']+'.chk\n')
+        g16_input.append('%nproc='+str(para['nproc'])+"\n")
+        g16_input.append("%mem=" + para['mem']+"\n")
+        g16_input.append(para['code']+"\n")
 
         # 匹配单坐标
         if isinstance(xyzs, str):
             g16_input.append("\n")
-            g16_input.append(paramenters['name']+'\n')
+            g16_input.append(para['name']+'\n')
             g16_input.append("\n")
             g16_input.append(
-                str(paramenters['charge']) + " " + paramenters['spin']+'\n')
+                str(para['charge']) + " " + para['spin']+'\n')
             g16_input.append(Xyz.initialize(xyzs))
             g16_input.append("\n")
 
@@ -41,26 +36,41 @@ class Xyz:
                 g16_input.append('Reaction or Product or TS'+'\n')
                 g16_input.append("\n")
                 g16_input.append(
-                    paramenters['charge'] + " " + paramenters['spin']+'\n')
+                    para['charge'] + " " + para['spin']+'\n')
                 g16_input.append(Xyz.initialize(xyz))
                 g16_input.append("\n")
 
-        if paramenters['mixset'] != '':
-            basets, exsets = Xyz.justelement(
-                xyzs, paramenters['mixset'][:-1])
+        if para['mixset'] != '':
+            def justelement(xyz, eles):
+                base_elements = Xyz.get_elements(xyz)
+                exclusive_sets = []
+
+                for ele in eles:
+                    exclusive_set = set(ele)
+                    for e in ele:
+                        if e in base_elements:
+                            base_elements.remove(e)
+                        else:
+                            exclusive_set.remove(e)
+                    exclusive_sets.append(' '.join(list(exclusive_set)))
+
+                return ' '.join(list(base_elements)), exclusive_sets
+            
+            basets, exsets = justelement(
+                xyzs, para['mixset'][:-1])
             g16_input.append(basets+' 0'+"\n")
-            g16_input.append(paramenters['method'].split('/')[1]+"\n")
+            g16_input.append(para['method'].split('/')[1]+"\n")
             g16_input.append('****'+"\n")
             g16_input.append('****'+"\n")
 
-            for i, st in enumerate(paramenters['mixset'][-1]):
+            for i, st in enumerate(para['mixset'][-1]):
                 g16_input.append(exsets[i]+' 0'+"\n")
                 g16_input.append(st+"\n")
                 g16_input.append('****'+"\n")
 
             g16_input.append("\n")
 
-            for i, st in enumerate(paramenters['mixset'][-1]):
+            for i, st in enumerate(para['mixset'][-1]):
                 g16_input.append(exsets[i]+' 0'+"\n")
                 g16_input.append(st+"\n")
                 g16_input.append('****'+"\n")
@@ -201,37 +211,38 @@ class Xyz:
 
     # 初始化xyz格式
     def initialize(xyz):
+        # 给字符串前后加定量空格
+        def addblank(st, num, dx=1):
+            if dx == 1:
+                for _ in range(num):
+                    st = st+' '
+            if dx == -1:
+                for _ in range(num):
+                    st = ' '+st
+            return st
+
         contents = xyz.strip().splitlines()
         res = []
-        for i, content in enumerate(contents, start=1):
+        for content in contents:
             me = content.split()
             if float(me[1]) < 0:
-                res.append(''+Xyz.addblank(me[0], 18-len(me[0]))+me[1])
+                res.append(''+addblank(me[0], 18-len(me[0]))+me[1])
             elif float(me[1]) >= 0:
-                res.append(''+Xyz.addblank(me[0], 19-len(me[0]))+me[1])
+                res.append(''+addblank(me[0], 19-len(me[0]))+me[1])
+                
             if float(me[2]) < 0:
-                res.append(Xyz.addblank(me[2], 3, -1))
+                res.append(addblank(me[2], 3, -1))
             elif float(me[2]) >= 0:
-                res.append(Xyz.addblank(me[2], 4, -1))
+                res.append(addblank(me[2], 4, -1))
 
             if float(me[3]) < 0:
-                res.append(Xyz.addblank(me[3], 3, -1))
+                res.append(addblank(me[3], 3, -1))
             elif float(me[3]) >= 0:
-                res.append(Xyz.addblank(me[3], 4, -1))
-
+                res.append(addblank(me[3], 4, -1))
             res.append('\n')
         return ''.join(res)
 
-    # 给字符串前后加定量空格
-    def addblank(st, num, dx=1):
-        if dx == 1:
-            for i in range(num):
-                st = st+' '
-        if dx == -1:
-            for i in range(num):
-                st = ' '+st
-        return st
-
+   
     def getpoints(xyz, *atoms):
         xyzs = Xyz.todata(xyz)[1]
         if not atoms:
@@ -248,20 +259,6 @@ class Xyz:
                 elements.add(string[0])
         return elements
 
-    def justelement(xyz, eles):
-        base_elements = Xyz.get_elements(xyz)
-        exclusive_sets = []
-
-        for ele in eles:
-            exclusive_set = set(ele)
-            for e in ele:
-                if e in base_elements:
-                    base_elements.remove(e)
-                else:
-                    exclusive_set.remove(e)
-            exclusive_sets.append(' '.join(list(exclusive_set)))
-
-        return ' '.join(list(base_elements)), exclusive_sets
 
     # 获取参数
     def getparameter(xyzs, *args):

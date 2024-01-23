@@ -4,10 +4,11 @@ from Tool.Draw import Draw
 
 import numpy as np
 
-y=np.arange(100)
-
+y=np.arange(10)
+print(y)
 dy=Compute.getderivative(y)
+print(dy)
 
-sy=Compute.getantiderivative(y)
+# sy=Compute.getantiderivative(y)
 
-Draw.draw_line(dy)
+# Draw.draw_line(dy)
