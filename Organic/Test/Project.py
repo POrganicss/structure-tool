@@ -12,8 +12,22 @@ import pandas as pd
 from scipy.optimize import basinhopping
 import os
 
-
+''' 
+这个包看起来是用于处理分子结构的 Python 包，具体而言，它提供了一系列用于对分子进行处理、修改和分析的函数。以下是对主要功能的综合分析：
+分子结构操作：
+该包包含了一系列函数，用于在给定的分子集合中添加金属中心、水分子等，从而修改分子结构。这些函数的目的是在分子中引入特定的结构单元，以模拟金属配位化合物或添加水分子等。
+AddMetalCentre 函数用于在给定的分子集合中为每个分子添加金属中心，并与配体原子形成特定数量的键。
+AddWaterAlongZAxis 函数用于在给定的分子集合中添加水分子，可以选择添加在 Z 轴的北方、南方或同时添加。
+分子结构分析：
+一些函数涉及到对分子结构的分析，例如 RemoveImpossibleComplexes 函数，它从分子集合中删除了一些复杂体系，其中非配位原子比配位原子更接近金属中心。
+文件格式转换：
+存在一些函数用于分子结构的文件格式转换。例如，mol2_to_openbabel 函数将分子集合中的分子转换为 Open Babel 可处理的格式，并生成相应的批处理文件用于通过 Open Babel 在命令行中优化分子结构。
+初始化函数：
+__init__ 函数是一个初始化函数，根据输入的条件读取不同来源的分子集合。可以选择从包含排除体积信息的 mol2 文件、包含金属中心信息的 mol2 文件、单独的 mol2 文件中读取分子。这个函数创建一个对象，该对象包含了从这些不同来源加载的分子集合。
+总体而言，这个包的主要作用是提供一些用于处理和修改分子结构的功能，特别是模拟金属配位体系以及在分子中添加或移除特定结构单元。同时，它还包括了一些与分子结构分析和文件格式转换相关的功能。这对于在计算化学和药物设计领域进行分子模拟和分析是有用的。
+ '''
 class ProcessCompounds:
+        
     def __init__(
         self,
         read_from_location,
@@ -22,41 +36,53 @@ class ProcessCompounds:
         with_metal_mol2_file=None,
         mol2_file=None,
     ):
+        """
+        初始化函数，创建包含分子集合的对象。
+
+        参数：
+        - read_from_location: 读取分子信息的文件路径
+        - save_to_location: 保存分子信息的文件路径
+        - excluded_vol_mol2_file: 包含排除体积信息的mol2文件（可选）
+        - with_metal_mol2_file: 包含金属中心信息的mol2文件（可选）
+        - mol2_file: mol2文件（可选）
+
+        返回：
+        无，但会创建一个包含分子集合的对象，并根据输入条件加载相应的分子集合。
+        """
+        # 将输入参数保存到对象属性中
         self.read_from_location = read_from_location
         self.save_to_location = save_to_location
         self.excluded_vol_mol2_file = excluded_vol_mol2_file
         self.with_metal_mol2_file = with_metal_mol2_file
         self.mol2_file = mol2_file
 
-        # It is important to remember that this code is built around how CSD cross miner
-        # searchers and saves the ligands
+        # 根据输入条件加载不同的分子集合
         if self.excluded_vol_mol2_file != None and self.with_metal_mol2_file != None:
-            # Read metal centre containing molecules with the ccdc reader
+            # 读取包含金属中心的分子集合
             metal_molecules = io.MoleculeReader(
                 self.read_from_location + self.with_metal_mol2_file
             )
-            # Load molecules from ccdc list type object to list
+            # 转换为列表形式
             metal_molecules = [molecule for molecule in metal_molecules]
             print(
                 "Size of ligand set with metal centre is: " + str(len(metal_molecules))
             )
-            # As it is only the ligand and not the metal centre that is needed
-            # the metal centre must be removed
-            # So the metal atom closest to the cartisien centre of (0, 0, 0) will be removed
+
+            # 移除金属中心，只保留配体
             for molecule in metal_molecules:
                 normal_list = []
                 for atom in molecule.atoms:
                     normal_list.append(
                         [np.linalg.norm(np.array(atom.coordinates)), atom]
                     )
-                # sort list in ascending order based on normal of atomic vector
+                # 按原子矢量的正常值升序排序
                 normal_list = sorted(normal_list, key=lambda x: x[0])
-                # Identifie the molecule coming from a metal complex
+                
+                # 识别来自金属络合物的分子
                 molecule.identifier = molecule.identifier + "_m"
                 for atom in normal_list:
                     atomic_symbol = atom[1].atomic_symbol
-                    # Note how these are alkaline metals and 1st row TM metals
-                    # CSD only has these metals saved in its CrossMiner database
+                    # 只有这些碱金属和第一行过渡金属在CSD的CrossMiner数据库中保存
                     if (
                         atomic_symbol == "Li"
                         or atomic_symbol == "Na"
@@ -80,27 +106,29 @@ class ProcessCompounds:
                         or atomic_symbol == "Zn"
                     ):
                         molecule.remove_atom(atom[1])
-                        # Break away from the for loop as we only need to remove
-                        # the centre atom
+                        # 仅需要删除中心原子，因此退出循环
                         break
-            # Load the excluded volume mol2 file
+
+            # 读取包含排除体积信息的mol2文件
             self.molecules = io.MoleculeReader(
                 self.read_from_location + self.excluded_vol_mol2_file
             )
-            # Load molecules from ccdc list type object to list
+            # 转换为列表形式
             self.molecules = [molecule for molecule in self.molecules]
             print(
                 "Size of ligand set with excluded volume is: "
                 + str(len(self.molecules))
             )
-            # Final molecule list object
+            
+            # 最终的分子列表对象
             self.molecules = self.molecules + metal_molecules
 
         elif self.excluded_vol_mol2_file != None:
+            # 仅读取包含排除体积信息的mol2文件
             self.molecules = io.MoleculeReader(
                 self.read_from_location + self.excluded_vol_mol2_file
             )
-            # Load molecules from ccdc list type object to list
+            # 转换为列表形式
             self.molecules = [molecule for molecule in self.molecules]
             print(
                 "Size of ligand set with excluded volume is: "
@@ -108,32 +136,31 @@ class ProcessCompounds:
             )
 
         elif self.with_metal_mol2_file != None:
-            # Read metal centre containing molecules with the ccdc reader
+            # 读取包含金属中心的分子集合
             metal_molecules = io.MoleculeReader(
                 self.read_from_location + self.with_metal_mol2_file
             )
-            # Load molecules from ccdc list type object to list
+            # 转换为列表形式
             metal_molecules = [molecule for molecule in metal_molecules]
             print(
                 "Size of ligand set with metal centre is: " + str(len(metal_molecules))
             )
-            # As it is only the ligand and not the metal centre that is needed
-            # the metal centre must be removed
-            # So the metal atom closest to the cartisien centre of (0, 0, 0) will be removed
+            
+            # 移除金属中心，只保留配体
             for molecule in metal_molecules:
                 normal_list = []
                 for atom in molecule.atoms:
                     normal_list.append(
                         [np.linalg.norm(np.array(atom.coordinates)), atom]
                     )
-                # sort list in ascending order based on normal of atomic vector
+                # 按原子矢量的正常值升序排序
                 normal_list = sorted(normal_list, key=lambda x: x[0])
-                # Identifie the molecule coming from a metal complex
+                
+                # 识别来自金属络合物的分子
                 molecule.identifier = molecule.identifier + "_m"
                 for atom in normal_list:
                     atomic_symbol = atom[1].atomic_symbol
-                    # Note how these are alkaline metals and 1st row TM metals
-                    # CSD only has these metals saved in its CrossMiner database
+                    # 只有这些碱金属和第一行过渡金属在CSD的CrossMiner数据库中保存
                     if (
                         atomic_symbol == "Li"
                         or atomic_symbol == "Na"
@@ -157,128 +184,77 @@ class ProcessCompounds:
                         or atomic_symbol == "Zn"
                     ):
                         molecule.remove_atom(atom[1])
-                        # Break away from the for loop as we only need to remove the centre atom
+                        # 仅需要删除中心原子，因此退出循环
                         break
             self.molecules = metal_molecules
 
         elif self.mol2_file != None:
+            # 仅读取mol2文件
             self.molecules = io.MoleculeReader(self.read_from_location + self.mol2_file)
-            # Load molecules from ccdc list type object to list
+            # 转换为列表形式
             self.molecules = [molecule for molecule in self.molecules]
             print("Size of ligand set is: " + str(len(self.molecules)))
 
+        # 创建分子字典，以分子标识符为键，分子对象为值
         self.molecules_dict = {}
         for molecule in self.molecules:
             self.molecules_dict[molecule.identifier] = molecule
 
     def FilterCrossMinerHits(self):
-        # Remove molecule if contains 3d, group 1 or group 2 metal
+        # 移除含有3D结构、1组或2组金属的分子
         remove_molecule_index = []
         for idx, molecule in enumerate(self.molecules):
             for atom in molecule.atoms:
-                if atom.atomic_symbol == "Li":
+                # 检查是否包含特定金属原子
+                if atom.atomic_symbol in ["Li", "Be", "Na", "Mg", "K", "Ca", "Sc", "Ti", "V", "Cr",
+                                        "Mn", "Fe", "Co", "Ni", "Cu", "Zn", "Rb", "Sr", "Cs", "Ba"]:
                     remove_molecule_index.append(idx)
                     break
-                elif atom.atomic_symbol == "Be":
-                    remove_molecule_index.append(idx)
-                    break
-                elif atom.atomic_symbol == "Na":
-                    remove_molecule_index.append(idx)
-                    break
-                elif atom.atomic_symbol == "Mg":
-                    remove_molecule_index.append(idx)
-                    break
-                elif atom.atomic_symbol == "K":
-                    remove_molecule_index.append(idx)
-                    break
-                elif atom.atomic_symbol == "Ca":
-                    remove_molecule_index.append(idx)
-                    break
-                elif atom.atomic_symbol == "Sc":
-                    remove_molecule_index.append(idx)
-                    break
-                elif atom.atomic_symbol == "Ti":
-                    remove_molecule_index.append(idx)
-                    break
-                elif atom.atomic_symbol == "V":
-                    remove_molecule_index.append(idx)
-                    break
-                elif atom.atomic_symbol == "Cr":
-                    remove_molecule_index.append(idx)
-                    break
-                elif atom.atomic_symbol == "Mn":
-                    remove_molecule_index.append(idx)
-                    break
-                elif atom.atomic_symbol == "Fe":
-                    remove_molecule_index.append(idx)
-                    break
-                elif atom.atomic_symbol == "Co":
-                    remove_molecule_index.append(idx)
-                    break
-                elif atom.atomic_symbol == "Ni":
-                    remove_molecule_index.append(idx)
-                    break
-                elif atom.atomic_symbol == "Cu":
-                    remove_molecule_index.append(idx)
-                    break
-                elif atom.atomic_symbol == "Zn":
-                    remove_molecule_index.append(idx)
-                    break
-                elif atom.atomic_symbol == "Rb":
-                    remove_molecule_index.append(idx)
-                    break
-                elif atom.atomic_symbol == "Sr":
-                    remove_molecule_index.append(idx)
-                    break
-                elif atom.atomic_symbol == "Cs":
-                    remove_molecule_index.append(idx)
-                    break
-                elif atom.atomic_symbol == "Ba":
-                    remove_molecule_index.append(idx)
-                    break
+        # 反转移除列表的顺序，并从分子集合中删除这些分子
         remove_molecule_index.reverse()
         for idx in remove_molecule_index:
             del self.molecules[idx]
-        print(
-            "Size of ligand set after removal of metal containing compounds is: "
-            + str(len(self.molecules))
-        )
-        # Remove molecule if carbon is not present
+        print("移除含有金属的分子后的分子集合大小为：" + str(len(self.molecules)))
+
+        # 移除不含碳的分子
         remove_molecule_index = []
         for idx, molecule in enumerate(self.molecules):
             contains_carbon = False
             for atom in molecule.atoms:
+                # 检查是否包含碳原子
                 if atom.atomic_symbol == "C":
                     contains_carbon = True
                     break
-            if contains_carbon == False:
+            # 如果不含碳，则将该分子索引添加到移除列表中
+            if not contains_carbon:
                 remove_molecule_index.append(idx)
+        # 反转移除列表的顺序，并从分子集合中删除这些分子
         remove_molecule_index.reverse()
         for idx in remove_molecule_index:
             del self.molecules[idx]
-        print(
-            "Size of ligand set after removal of compounds not containing carbon is: "
-            + str(len(self.molecules))
-        )
-        # Add protons to molecules containing absolutly no protons at all.
+        print("移除不含碳的分子后的分子集合大小为：" + str(len(self.molecules)))
+
+        # 为不含氢的分子添加氢原子
         remove_molecule_index = []
         for idx, molecule in enumerate(self.molecules):
             contains_hydrogen = False
             for atom in molecule.atoms:
                 if atom.atomic_symbol == "H":
                     contains_hydrogen = True
-                # Sometimes the Carbon has incorrect valence so this must be corrected
+                # 有时碳的化合价不正确，需要修正
                 elif atom.atomic_symbol == "C":
                     valence = 0
+                    # 计算碳原子的化合价
                     for bond in atom.bonds:
                         if bond.bond_type == 1:
-                            valence = valence + 1  # Single bond valence is 1
-                        elif bond.bond_type == 5:  # ccdc aromatic bond value is 5
-                            valence = valence + 1.5  # aromatic bond valence is 1.5
+                            valence += 1  # 单键的化合价为1
+                        elif bond.bond_type == 5:
+                            valence += 1.5  # 芳香键的化合价为1.5
                         elif bond.bond_type == 2:
-                            valence = valence + 2  # double bond valence is 2
+                            valence += 2  # 双键的化合价为2
                         elif bond.bond_type == 3:
-                            valence = valence + 3  # Triple bond valence is 3
+                            valence += 3  # 三键的化合价为3
+                    # 如果化合价小于4，则尝试为分子添加氢原子
                     if valence < 4:
                         try:
                             molecule.add_hydrogens(mode="all", add_sites=True)
@@ -286,43 +262,36 @@ class ProcessCompounds:
                             break
                         except RuntimeError:
                             remove_molecule_index.append(idx)
-                            print(
-                                "Could not add H to "
-                                + molecule.to_string("mol2").split("\n")[1]
-                            )
+                            print("无法向 " + molecule.to_string("mol2").split("\n")[1] + " 添加H原子")
                             break
-            if contains_hydrogen == False:
+            # 如果不含氢，则尝试为分子添加氢原子
+            if not contains_hydrogen:
                 try:
                     molecule.add_hydrogens(mode="all", add_sites=True)
                 except RuntimeError:
                     remove_molecule_index.append(idx)
-                    print(
-                        "Could not add H to "
-                        + molecule.to_string("mol2").split("\n")[1]
-                    )
+                    print("无法向 " + molecule.to_string("mol2").split("\n")[1] + " 添加H原子")
+        # 移除可能出现的重复的索引，然后反转列表的顺序，并从分子集合中删除这些分子
         remove_molecule_index = list(set(remove_molecule_index))
         remove_molecule_index.sort()
         remove_molecule_index.reverse()
         for idx in remove_molecule_index:
             del self.molecules[idx]
-        # Set formal charges on all molecules
+
+        # 为所有分子设置正式电荷
         remove_molecule_index = []
         for idx, molecule in enumerate(self.molecules):
             try:
                 molecule.set_formal_charges()
             except RuntimeError:
-                print(
-                    "Could not add formal charges "
-                    + molecule.to_string("mol2").split("\n")[1]
-                )
+                print("无法为 " + molecule.to_string("mol2").split("\n")[1] + " 设置正式电荷")
                 remove_molecule_index.append(idx)
+        # 反转移除列表的顺序，并从分子集合中删除这些分子
         remove_molecule_index.reverse()
         for idx in remove_molecule_index:
             del self.molecules[idx]
-        # Remove molecules with the same smiles string
-        # A random metal atom is added. Sometimes the CSD CrossMiner will find a ligand
-        # with 2 or more possible configurations of ligand binding
-        # So we do not want to loose that in the same SMILES purge
+
+        # 移除具有相同SMILES字符串的分子
         smiles_list = []
         remove_molecule_index = []
         metal_atom = Atom("Mn", coordinates=(0, 0, 0))
@@ -333,45 +302,46 @@ class ProcessCompounds:
             for atom in copy_molecule.atoms[:-1]:
                 normal = np.linalg.norm(np.array(atom.coordinates))
                 atomic_symbol = atom.atomic_symbol
-                if (
-                    normal <= max_bond_distance
-                    and atomic_symbol != "C"
-                    and atomic_symbol != "H"
-                ):
+                # 添加金属原子与其他非碳非氢的原子之间的键
+                if normal <= max_bond_distance and atomic_symbol != "C" and atomic_symbol != "H":
                     b_id = copy_molecule.add_bond(Bond.BondType(1), a_id, atom)
             smiles = copy_molecule.smiles
+            # 如果SMILES字符串已经存在于列表中，则将该分子索引添加到移除列表中
             if smiles not in smiles_list:
                 smiles_list.append(smiles)
             else:
                 remove_molecule_index.append(idx)
+        # 反转移除列表的顺序，并从分子集合中删除这些分子
         remove_molecule_index.reverse()
         for idx in remove_molecule_index:
             del self.molecules[idx]
-        print(
-            "Size of ligand set after removal of compounds with the same SMILES string is: "
-            + str(len(self.molecules))
-        )
-        # Want to remove ligands that are actually two or more components
+        print("移除具有相同SMILES字符串的分子后的分子集合大小为：" + str(len(self.molecules)))
+
+        # 移除多组分子
         remove_molecule_index = []
         for idx, molecule in enumerate(self.molecules):
+            # 如果分子包含的组件数量大于等于2，则将该分子索引添加到移除列表中
             if len(molecule.components) >= 2:
                 remove_molecule_index.append(idx)
+        # 反转移除列表的顺序，并从分子集合中删除这些分子
         remove_molecule_index.reverse()
         for idx in remove_molecule_index:
             del self.molecules[idx]
-        with open(
-            self.save_to_location + "filtered_ligand_set.mol2", "w"
-        ) as filtered_ligand_set:
-            for molecule in self.molecules:
-                string = molecule.to_string("mol2")
-                filtered_ligand_set.write(string + "\n")
-            filtered_ligand_set.close()
+
+        # 将过滤后的分子集合保存到文件
+        with open(self.save_to_location + "filtered_ligand_set.mol2", "w") as filtered_ligand_set:
+        for molecule in self.molecules:
+            string = molecule.to_string("mol2")
+            filtered_ligand_set.write(string + "\n")
+        filtered_ligand_set.close()
 
     def RemoveProtonfromONS(self, atom, molecule):
-        # remove protons from oxygens, nitrogens and sulphers as appropiate
-        atomic_symbol = atom.atomic_symbol
-        atom_neighbours = atom.neighbours
-        # Testing for alcohols and thiols
+        # 从氧、氮和硫原子中适当地移除质子
+
+        atomic_symbol = atom.atomic_symbol  # 获取原子的符号
+        atom_neighbours = atom.neighbours  # 获取原子的邻居列表
+
+        # 检测是否为醇和硫醇
         if (
             (atomic_symbol == "O" or atomic_symbol == "S")
             and len(atom_neighbours) == 2
@@ -380,37 +350,28 @@ class ProcessCompounds:
                 or atom_neighbours[1].atomic_symbol == "H"
             )
         ):
+            # 对于醇和硫醇，移除相邻的氢原子，将原子的正式电荷设置为-1
             for neighbour_atom in atom_neighbours:
                 if neighbour_atom.atomic_symbol == "H":
                     molecule.remove_atom(neighbour_atom)
                     atom.formal_charge = -1
                     break
-        # Testing for protonated nitrogens
+
+        # 检测是否为质子化的氮原子
         elif atomic_symbol == "N":
-            """
-            ccdc's bond integer
-            Type	Integer
-            Unknown	0
-            Single	1
-            Double	2
-            Triple	3
-            Quadruple	4
-            Aromatic	5
-            Delocalised	7
-            Pi	9
-            """
+            # 计算氮原子的化合价
             valence = 0
             for bond in atom.bonds:
                 if bond.bond_type == 1:
-                    valence = valence + 1  # Single bond valence is 1
-                elif bond.bond_type == 5:  # ccdc aromatic bond value is 5
-                    valence = valence + 1.5  # aromatic bond valence is 1.5
+                    valence += 1  # 单键的化合价为1
+                elif bond.bond_type == 5:  # ccdc芳香键的值为5
+                    valence += 1.5  # 芳香键的化合价为1.5
                 elif bond.bond_type == 2:
-                    valence = valence + 2  # double bond valence is 2
+                    valence += 2  # 双键的化合价为2
                 elif bond.bond_type == 3:
-                    valence = valence + 3  # Triple bond valence is 3
-            # nitrogen is always has a positive formal charge if it has a valence of 4.
-            # If there is a proton, the proton will be removed
+                    valence += 3  # 三键的化合价为3
+            # 如果氮原子的化合价为4，即氮原子氮原子的单键数为3，双键数为1
+            # 则氮原子带有正式电荷，此时如果有相邻的氢原子，将其移除
             if valence == 4:
                 for neighbour_atom in atom_neighbours:
                     if neighbour_atom.atomic_symbol == "H":
@@ -421,8 +382,23 @@ class ProcessCompounds:
     def AddHydrogensToAtom(
         self, atom, molecule, num_of_H_to_add, bond_length, new_hydrogen_idx
     ):
-        c_atom_coor = np.array(atom.coordinates)
-        n_atom_coors = [np.array(i.coordinates) for i in atom.neighbours]
+        """
+        向给定的原子添加氢原子，具体取决于要添加的氢原子的数量和几何参数。
+
+        参数：
+        - atom: 要添加氢原子的原子对象
+        - molecule: 包含原子的分子对象
+        - num_of_H_to_add: 要添加的氢原子数量，可以是1、2或3
+        - bond_length: 新添加的氢原子与原子之间的键长
+        - new_hydrogen_idx: 用于生成新氢原子标签的索引值
+
+        返回：
+        更新后的氢原子索引值
+        """
+        c_atom_coor = np.array(atom.coordinates)  # 获取原子坐标
+        n_atom_coors = [np.array(i.coordinates) for i in atom.neighbours]  # 获取邻居原子坐标列表
+
+        # 添加一个氢原子
         if num_of_H_to_add == 1:
             resultant_vector = np.array([0, 0, 0])
             for n_atom_coor in n_atom_coors:
@@ -438,6 +414,8 @@ class ProcessCompounds:
                 )
             )
             new_bond_id = molecule.add_bond(Bond.BondType(1), new_atom_id, atom)
+
+        # 添加两个氢原子
         elif num_of_H_to_add == 2:
             resultant_vector = np.array([0, 0, 0])
             for n_atom_coor in n_atom_coors:
@@ -454,7 +432,7 @@ class ProcessCompounds:
                 )
             except IndexError:
                 rotation_axis = np.array([1, 0, 0])
-            rotation_axis = rotation_axis / np.norm(rotation_axis)
+            rotation_axis = rotation_axis / np.linalg.norm(rotation_axis)
             new_H_coors = [
                 self.RotateVector(
                     vector_to_rotate=resultant_vector,
@@ -468,7 +446,7 @@ class ProcessCompounds:
                 ),
             ]
             new_H_coors = [
-                ((new_H_coor / np.norm(new_H_coor)) * bond_length) + c_atom_coor
+                ((new_H_coor / np.linalg.norm(new_H_coor)) * bond_length) + c_atom_coor
                 for new_H_coor in new_H_coors
             ]
             for new_H_coor_1 in new_H_coors:
@@ -481,6 +459,8 @@ class ProcessCompounds:
                 )
                 new_bond_id = molecule.add_bond(Bond.BondType(1), new_atom_id, atom)
                 new_hydrogen_idx = new_hydrogen_idx + 1
+
+        # 添加三个氢原子
         elif num_of_H_to_add == 3:
             n_atom = atom.neighbours[0]
             n_n_atoms = n_atom.neighbours[0:2]
@@ -493,7 +473,7 @@ class ProcessCompounds:
             rotation_axis = np.cross(
                 n_n_atoms_cross, c_atom_coor - np.array(n_atom.coordinates)
             )
-            rotation_axis = rotation_axis / np.norm(rotation_axis)
+            rotation_axis = rotation_axis / np.linalg.norm(rotation_axis)
             new_H_coor_1 = (
                 self.RotateVector(
                     vector_to_rotate=n_n_atoms_cross_unit * bond_length,
@@ -547,6 +527,7 @@ class ProcessCompounds:
             )
             new_bond_id = molecule.add_bond(Bond.BondType(1), new_atom_id, atom)
             new_hydrogen_idx = new_hydrogen_idx + 1
+
         return new_hydrogen_idx
 
     def AddMetalCentre(
@@ -559,68 +540,63 @@ class ProcessCompounds:
         symmetric_coordination_environment=True,
         vary_protons=True,
     ):
-        # Add metal centre to ligand at 0, 0, 0
-        # Care is required when adding bonds between the ligand and the metal centre.
-        # Atom is not a carbon, hydrogen or halogen
-        # Can not be 4 coordinate Sulpher or 5 coordinate phosphours
-        # Some times there will be more than 5 potential metal to ligand bonds
-        # Different combinations will have to be made and then tested to see which combination gives the lowest energy in the xTB output file
+        """
+        向分子中添加金属中心。
+
+        参数：
+        - metal: 金属元素的原子符号
+        - oxidation_state: 金属的氧化态
+        - max_bond_dist: 金属与配位原子之间的最大键长
+        - output_file_name: 输出文件的名称
+        - number_of_bonds_formed: 金属与分子中形成的键数
+        - symmetric_coordination_environment: 是否对配位环境进行对称处理，默认为True
+        - vary_protons: 是否对质子进行变异处理，默认为True
+
+        返回：
+        无，但将修改的分子保存到输出文件中。
+        """
+        # 创建金属原子对象并将其添加到分子的原子列表中
         metal_atom = Atom(metal, coordinates=(0, 0, 0), formal_charge=oxidation_state)
         for molecule in self.molecules:
             m_id = molecule.add_atom(metal_atom)
             molecule.atoms[-1].label = metal + "1"
-            bonding_atoms = []  # list of bonding atoms
+            bonding_atoms = []  # 用于存储配位原子的列表
+
+            # 遍历分子中的其他原子，找到潜在的配位原子
             for atom in molecule.atoms[:-1]:
                 atomic_symbol = atom.atomic_symbol
                 num_neighbours = len(atom.neighbours)
-                contains_H = False
-                for is_H in atom.neighbours:
-                    if is_H.atomic_symbol == "H":
-                        contains_H = True
-                        break
+                contains_H = any(neighbour.atomic_symbol == "H" for neighbour in atom.neighbours)
+
                 normal = np.linalg.norm(np.array(atom.coordinates))
-                # Add bond between metal and coordinating atoms.
-                # Must filter for appropiate potential coordianting atom based on type and coordination number
+                # 添加金属与配位原子之间的键
                 if (
                     max_bond_dist >= normal
-                    and atomic_symbol != "H"
-                    and atomic_symbol != "C"
-                    and atomic_symbol != "F"
-                    and atomic_symbol != "Cl"
-                    and atomic_symbol != "Br"
-                    and atomic_symbol != "I"
-                    and atomic_symbol != "B"
+                    and atomic_symbol not in ["H", "C", "F", "Cl", "Br", "I", "B"]
                 ):
                     if atomic_symbol == "P" and num_neighbours >= 4:
                         pass
                     elif atomic_symbol == "S" and num_neighbours >= 4:
                         pass
-                    elif (
-                        atomic_symbol == "N"
-                        and num_neighbours >= 4
-                        and contains_H == False
-                    ):
+                    elif atomic_symbol == "N" and num_neighbours >= 4 and not contains_H:
                         pass
                     else:
                         bonding_atoms.append(atom)
-            # Add bonds if there is the right amount of coordinating atoms to metal centre
+
+            # 如果配位原子的数量符合要求，添加键
             if len(bonding_atoms) == number_of_bonds_formed:
                 for atom in bonding_atoms:
-                    ProcessCompounds.RemoveProtonfromONS(
-                        self, atom=atom, molecule=molecule
-                    )
+                    ProcessCompounds.RemoveProtonfromONS(self, atom=atom, molecule=molecule)
                     b_id = molecule.add_bond(Bond.BondType(1), m_id, atom)
 
-            # Most of the time there are more potential coordinating atoms
-            # then the specified amount of coordinating atoms we need
-            # Find the magnitude of all possible combinations of vectors
-            # The group of vectors with the smallest possible magnitude will be
-            # bonded to the metal
-            # If symmetric_coordination_environment=True
+            # 大多数情况下，存在的配位原子多于所需的数量
+            # 找到所有可能组合的矢量的大小
+            # 具有最小可能大小的矢量组将被键合到金属上
+            # 如果 symmetric_coordination_environment=True
             elif len(bonding_atoms) < number_of_bonds_formed:
                 print("WARNING FIX THIS: " + molecule.identifier)
             else:
-                if symmetric_coordination_environment == True:
+                if symmetric_coordination_environment:
                     combs = combinations(bonding_atoms, number_of_bonds_formed)
                     magnitude = []
                     for comb in list(combs):
@@ -635,15 +611,14 @@ class ProcessCompounds:
                         magnitude.append([normal, comb])
                     magnitude = sorted(magnitude, key=lambda x: x[0])
                     for atom in magnitude[0][1]:
-                        ProcessCompounds.RemoveProtonfromONS(
-                            self, atom=atom, molecule=molecule
-                        )
+                        ProcessCompounds.RemoveProtonfromONS(self, atom=atom, molecule=molecule)
                         b_id = molecule.add_bond(Bond.BondType(1), m_id, atom)
 
-        # Add protons to molecules
-        if vary_protons == True:
+        # 向分子添加质子
+        if vary_protons:
             molecules_to_be_protonated = []
-            # find and make copys of molecules that need to be protonated
+
+            # 查找需要质子化的分子，并创建副本
             for molecule in self.molecules:
                 for atom in molecule.atoms:
                     if atom.atomic_symbol == metal:
@@ -651,37 +626,15 @@ class ProcessCompounds:
                         for n_atom in n_atoms:
                             n_atom_type = n_atom.atomic_symbol
                             n_atom_charge = n_atom.formal_charge
-                            n_atom_total_bond_order = 0
-                            for bond in n_atom.bonds:
-                                if bond.bond_type == 1:
-                                    n_atom_total_bond_order = (
-                                        n_atom_total_bond_order + 1
-                                    )
-                                elif bond.bond_type == 2:
-                                    n_atom_total_bond_order = (
-                                        n_atom_total_bond_order + 2
-                                    )
-                                elif bond.bond_type == 3:
-                                    n_atom_total_bond_order = (
-                                        n_atom_total_bond_order + 3
-                                    )
-                                elif bond.bond_type == 4:
-                                    n_atom_total_bond_order = (
-                                        n_atom_total_bond_order + 4
-                                    )
-                                elif bond.bond_type == 5:
-                                    n_atom_total_bond_order = (
-                                        n_atom_total_bond_order + 1.5
-                                    )
+                            n_atom_total_bond_order = sum(bond.bond_type for bond in n_atom.bonds)
+
                             if (
                                 n_atom_type == "O"
                                 and len(n_atom.neighbours) == 2
                                 and n_atom_total_bond_order == 2
                             ):
                                 molecule_copy = molecule.copy()
-                                molecule_copy.identifier = (
-                                    molecule_copy.identifier + "_protonated"
-                                )
+                                molecule_copy.identifier = molecule_copy.identifier + "_protonated"
                                 molecules_to_be_protonated.append(molecule_copy)
                                 break
                             elif (
@@ -690,9 +643,7 @@ class ProcessCompounds:
                                 and n_atom_total_bond_order == 2
                             ):
                                 molecule_copy = molecule.copy()
-                                molecule_copy.identifier = (
-                                    molecule_copy.identifier + "_protonated"
-                                )
+                                molecule_copy.identifier = molecule_copy.identifier + "_protonated"
                                 molecules_to_be_protonated.append(molecule_copy)
                                 break
                             elif (
@@ -701,9 +652,7 @@ class ProcessCompounds:
                                 and n_atom_total_bond_order == 3
                             ):
                                 molecule_copy = molecule.copy()
-                                molecule_copy.identifier = (
-                                    molecule_copy.identifier + "_protonated"
-                                )
+                                molecule_copy.identifier = molecule_copy.identifier + "_protonated"
                                 molecules_to_be_protonated.append(molecule_copy)
                                 break
                             elif (
@@ -712,13 +661,12 @@ class ProcessCompounds:
                                 and n_atom_total_bond_order == 3
                             ):
                                 molecule_copy = molecule.copy()
-                                molecule_copy.identifier = (
-                                    molecule_copy.identifier + "_protonated"
-                                )
+                                molecule_copy.identifier = molecule_copy.identifier + "_protonated"
                                 molecules_to_be_protonated.append(molecule_copy)
                                 break
                         break
-            # protonate the molecules
+
+            # 质子化分子
             for molecule in molecules_to_be_protonated:
                 for atom in molecule.atoms:
                     if atom.atomic_symbol == metal:
@@ -726,28 +674,8 @@ class ProcessCompounds:
                         for n_atom in n_atoms:
                             n_atom_type = n_atom.atomic_symbol
                             n_atom_charge = n_atom.formal_charge
-                            n_atom_total_bond_order = 0
-                            for bond in n_atom.bonds:
-                                if bond.bond_type == 1:
-                                    n_atom_total_bond_order = (
-                                        n_atom_total_bond_order + 1
-                                    )
-                                elif bond.bond_type == 2:
-                                    n_atom_total_bond_order = (
-                                        n_atom_total_bond_order + 2
-                                    )
-                                elif bond.bond_type == 3:
-                                    n_atom_total_bond_order = (
-                                        n_atom_total_bond_order + 3
-                                    )
-                                elif bond.bond_type == 4:
-                                    n_atom_total_bond_order = (
-                                        n_atom_total_bond_order + 4
-                                    )
-                                elif bond.bond_type == 5:
-                                    n_atom_total_bond_order = (
-                                        n_atom_total_bond_order + 1.5
-                                    )
+                            n_atom_total_bond_order = sum(bond.bond_type for bond in n_atom.bonds)
+
                             if (
                                 n_atom_type == "O"
                                 and len(n_atom.neighbours) == 2
@@ -801,8 +729,11 @@ class ProcessCompounds:
                                     new_hydrogen_idx="H" + str(len(molecule.atoms)),
                                 )
                         break
-            # molecules have been protonated and added to the set of molecules where they will be saved
+
+            # 已经质子化并将其添加到将要保存的分子集合中
             self.molecules = self.molecules + molecules_to_be_protonated
+
+        # 将修改后的分子保存到输出文件
         with open(self.save_to_location + output_file_name + ".mol2", "w") as f:
             for molecule in self.molecules:
                 string = molecule.to_string("mol2")
@@ -816,21 +747,39 @@ class ProcessCompounds:
         bond_dist=1,
         output_file_name="added_water_ligands",
     ):
+        """
+        在分子中添加水分子。
+
+        参数：
+        - Add_north_water: 是否在北方向添加水分子，默认为False
+        - Add_south_water: 是否在南方向添加水分子，默认为False
+        - bond_dist: 金属与氧原子之间的键长，默认为1
+        - output_file_name: 输出文件的名称，默认为"added_water_ligands"
+
+        返回：
+        无，但将修改的分子保存到输出文件中。
+        """
         for molecule in self.molecules:
             metal = molecule.atoms[-1]
-            if Add_north_water == True and Add_south_water == False:
+
+            # 在北方向添加水分子
+            if Add_north_water and not Add_south_water:
                 label = "ON"
                 oxygen = Atom("O", coordinates=(0, 0, bond_dist * 1), label=label)
                 oxygen_id = molecule.add_atom(oxygen)
                 bond_id = molecule.add_bond(Bond.BondType(1), metal, oxygen_id)
                 molecule.add_hydrogens(mode="all", add_sites=True)
-            elif Add_south_water == True and Add_north_water == False:
+
+            # 在南方向添加水分子
+            elif Add_south_water and not Add_north_water:
                 label = "OS"
                 oxygen = Atom("O", coordinates=(0, 0, bond_dist * -1), label=label)
                 oxygen_id = molecule.add_atom(oxygen)
                 bond_id = molecule.add_bond(Bond.BondType(1), metal, oxygen_id)
                 molecule.add_hydrogens(mode="all", add_sites=True)
-            elif Add_north_water == True and Add_south_water == True:
+
+            # 同时在北方向和南方向添加水分子
+            elif Add_north_water and Add_south_water:
                 Noxygen = Atom("O", coordinates=(0, 0, bond_dist), label="ON")
                 Soxygen = Atom("O", coordinates=(0, 0, -bond_dist), label="OS")
                 N_id = molecule.add_atom(Noxygen)
@@ -838,10 +787,12 @@ class ProcessCompounds:
                 Nb_id = molecule.add_bond(Bond.BondType(1), metal, N_id)
                 Sb_id = molecule.add_bond(Bond.BondType(1), metal, S_id)
                 molecule.add_hydrogens(mode="all", add_sites=True)
+
+            # 未指定方向，抛出异常
             else:
-                raise Exception(
-                    "Water can only be North or South or both, 1 or -1 or 0"
-                )
+                raise Exception("Water can only be North or South or both, 1 or -1 or 0")
+
+        # 将修改后的分子保存到输出文件
         with open(self.save_to_location + output_file_name + ".mol2", "w") as f:
             for molecule in self.molecules:
                 string = molecule.to_string("mol2")
@@ -849,10 +800,23 @@ class ProcessCompounds:
             f.close()
 
     def mol2_to_openbabel(self, output_dir_name, keywords, maxiter):
+        """
+        将分子结构转换为OpenBabel格式并进行力场优化。
+
+        参数：
+        - output_dir_name: 输出目录的名称
+        - keywords: OpenBabel命令行关键字参数
+        - maxiter: 最大迭代次数
+
+        返回：
+        无，但将转换后的分子保存为OpenBabel格式的文件，并生成用于运行OpenBabel的批处理文件。
+        """
         try:
             os.mkdir(self.save_to_location + output_dir_name)
         except FileExistsError:
             pass
+
+        # 生成批处理文件的头部
         bat_script = (
             "@echo off\n"
             + "cd "
@@ -862,9 +826,12 @@ class ProcessCompounds:
             + '"'
             + "\n"
         )
+
         for molecule in self.molecules:
             identifier = molecule.identifier
             mol2_string = molecule.to_string("mol2")
+
+            # 为每个分子生成OpenBabel命令并添加到批处理文件中
             bat_script = (
                 bat_script
                 + keywords
@@ -878,37 +845,48 @@ class ProcessCompounds:
                 + identifier
                 + "-openbabelOutput.txt\n"
             )
+
+            # 将分子保存为mol2文件
             with open(
-                self.save_to_location + output_dir_name + "/" + identifier + ".mol2",
-                "w",
+                self.save_to_location + output_dir_name + "/" + identifier + ".mol2", "w"
             ) as f:
                 f.write(mol2_string)
                 f.close()
+
+        # 将批处理文件保存到输出目录
         with open(
             self.save_to_location + output_dir_name + "/openbabel_run.bat", "w"
         ) as f:
             f.write(bat_script)
             f.close()
-        # Optimise using openbabel UFF in the command line
-        # 'conda activate rdkit-env' This is where obminimize function exists
-        # conda activate C:\ProgramData\Anaconda3\envs\rdkit-env (manually)
-        # run the PreOptOutput file (manually)
-        # The output files from openbabel UFF loose formal charges.
-        # This should not matter as we will already have used ccdc
-        # to work out the formal charges
+
+        # 最后的注释部分提到手动执行OpenBabel命令的一些步骤，但不在代码中体现。
 
     def RemoveImpossibleComplexes(self, metal_centre, output_file_name):
-        # removes complexes where the non-bonding atoms to the metal centre are closer than the bonding atoms to the metal centre
+        """
+        移除非常规金属络合物。
+
+        参数：
+        - metal_centre: 金属中心的原子符号
+        - output_file_name: 输出文件的名称
+
+        返回：
+        无，但会删除不符合规则的分子，并将结果保存到指定的输出文件中。
+        """
+        # 存储需要移除的分子索引
         remove_molecule_index = []
+
+        # 遍历所有分子
         for index, molecule in enumerate(self.molecules):
             m_atom = None
             for atom in molecule.atoms:
                 if atom.atomic_symbol == metal_centre:
                     m_atom = atom
                     break
+
             atoms = molecule.atoms
-            coor_atom_BD = []
-            coor_atom_labels = []
+            coor_atom_BD = []  # 与金属中心相邻的原子到金属的距离
+            coor_atom_labels = []  # 与金属中心相邻的原子标签
             for atom in m_atom.neighbours:
                 coor_atom_BD.append(
                     np.linalg.norm(
@@ -916,43 +894,58 @@ class ProcessCompounds:
                     )
                 )
                 coor_atom_labels.append(atom.label)
+
             remove_atom_index = []
             for coor_atom_label in coor_atom_labels:
                 for idx, atom in enumerate(atoms):
                     if atom.label == coor_atom_label:
                         remove_atom_index.append(idx)
+
+            # 移除与金属中心相邻的原子及金属中心本身
             for idx, atom in enumerate(atoms):
                 if atom.label == m_atom.label:
                     remove_atom_index.append(idx)
+
             remove_atom_index.reverse()
+
             for idx in remove_atom_index:
                 del atoms[idx]
 
-            non_coor_atom_BD = []
+            non_coor_atom_BD = []  # 与金属中心非相邻的原子到金属的距离
             for atom in atoms:
                 non_coor_atom_BD.append(
                     np.linalg.norm(
                         np.array(atom.coordinates) - np.array(m_atom.coordinates)
                     )
                 )
+
             try:
+                # 如果非相邻原子到金属的最小距离小于相邻原子到金属的最小距离，则标记该分子索引需要移除
                 if min(non_coor_atom_BD) < min(coor_atom_BD):
                     remove_molecule_index.append(index)
             except ValueError:
                 pass
+
+        # 根据需要移除的分子索引进行删除
         remove_molecule_index.reverse()
         for idx in remove_molecule_index:
             del self.molecules[idx]
+
+        # 输出剩余的分子数
         print(len(self.molecules))
+
+        # 将结果保存到指定的输出文件中
         new_mol_file = ""
         for molecule in self.molecules:
             new_mol_file = new_mol_file + molecule.to_string("mol2")
+
         with open(self.save_to_location + output_file_name + ".mol2", "w") as f:
             f.write(new_mol_file)
             f.close()
 
 
 class AnalyseCompounds:
+    
     def __init__(
         self,
         read_from_location,

@@ -49,9 +49,7 @@ class File:
                 raise ValueError("Failed to convert molecule")
     
     def getdata(filename):
-        
-        
-        with open(filename,'r')as r:
+        with open(filename,'r',encoding='utf-8')as r:
             content=r.read()
             r.close
         return content
@@ -81,30 +79,7 @@ class File:
         print()
         
     def getpath():
-        #path = os.getcwd()
-        path = os.path.dirname(__file__).replace('\Tool', '')
-        
-        path1 = path.replace('\\', '/')
-        path2=path.replace('\\', '\\\\')
-        paths=[]
-        
-        if os.path.exists(path1):
-            paths.append(path1+'/Applications')
-            paths.append(path1+'/Format')
-            paths.append(path1+'/Functions')
-            paths.append(path1+'/Tool')
-            return paths
-        
-        elif os.path.exists(path2):
-            paths.append(path2+'\\Applications')
-            paths.append(path2+'\\Format')
-            paths.append(path2+'\\Functions')
-            paths.append(path2+'\\Tool')
-            return paths
-        else:
-            from tkinter import messagebox
-            messagebox.showinfo('错误提示', '路径错误')
-    
+        print()
 
 
 
