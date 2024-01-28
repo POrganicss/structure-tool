@@ -6,8 +6,8 @@ import math
 #提供gaussian运算参数的设置
 class Code:
 
-    # 根据函数输出生成命令代码
-    @staticmethod
+    # 作为总的参数生成命令，根据函数输入生成命令代码
+    @staticmethod  
     def set(nproc=16, mem='55GB', name='proj', charge=0, spin='1', opt='calcfc', method='B3LYP/6-31g', additional='', solvent='',mixset=''):
         
         code = {'opt': opt, 'method': method,
@@ -21,6 +21,37 @@ class Code:
                 'method':method,
                 'solvent':solvent}
         return para
+  
+    # 根据参数字典生成命令代码 
+    def getcode(code:dict):
+        Code = '# '
+        # 生成opt部分
+        if code['opt']!='': #判断逻辑为opt不为空则加到code中，否则不进行opt计算
+            Code=Code+'opt=('+code['opt']+") "
+        
+        # 生成method部分
+        if code['mixset']!='':
+            Code=Code+code['method'].split('/')[0]+'/'+'genecp '
+        else:
+            Code=Code+code['method']+ ' '
+            
+        # 生成溶剂的的部分
+        if code['solvent']!='':
+            Code = Code+'scrf=(smd,solvent=' +code['solvent']+') '
+        Code = Code+code['additional']+' '
+        return Code
+
+
+    # 将修改后的代码重新生成参数字典
+    def topara(para:dict):
+        fpara = {'nproc': str(para['nproc']), 'mem': para['mem'], 'name': para['name'],
+                 'charge': str(para['charge']), 'spin': str(para['spin']), 'mixset': para['mixset'], 'method': para['method']
+                 
+                 }
+        fpara['code']=Code.getcode(para)
+        return fpara
+
+
 
     def get(para: dict):
         fpara = {'nproc': str(para['nproc']), 'mem': para['mem'], 'name': para['name'],
@@ -29,21 +60,7 @@ class Code:
         fpara['code'] = Code.getcode(para)
         return fpara
     
-        
-    # 根据参数字典生成命令代码
-    def getcode(code:dict):
-        Code = '# '
-        if code['opt']!='':
-            Code=Code+'opt=('+code['opt']+") "
-        if code['mixset']!='':
-            Code=Code+code['method'].split('/')[0]+'/'+'genecp '
-        else:
-            Code=Code+code['method']
-        if code['solvent']!='':
-            Code = Code+' scrf=(smd,solvent=' +code['solvent']+') '
-        Code = Code+code['additional']  
-        return Code
-
+      
     #将代码生成参数字典
     def tocode(order:str):
         units = order.replace('# ', '').replace('', '').split(' ')
@@ -64,16 +81,6 @@ class Code:
                 code['additional'] = code['additional']+' '+unit
         return code
     
-    # 将代码生成参数字典
-    def topara(para:dict):
-        fpara = {'nproc': str(para['nproc']), 'mem': para['mem'], 'name': para['name'],
-                 'charge': str(para['charge']), 'spin': str(para['spin']), 'mixset': para['mixset'], 'method': para['method']
-                 
-                 }
-        fpara['code']=Code.getcode(para)
-        
-        return fpara
-
 
     # 将gjf命令解析拆分
 
@@ -264,7 +271,7 @@ class Code:
         return sets, s
 
     # 获取文件名
-    def getname(name,para):
+    def getname(name: str):
         date = str(datetime.date.today()).split('-')
         name_postfix = date[0][2:]+date[1]+date[2]
-        return name[0]+name_postfix+str(name[1])
+        return name+'_'+name_postfix
