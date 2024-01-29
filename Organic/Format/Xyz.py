@@ -3,7 +3,7 @@ from Tool.Compute import *
 from Tool.Verify import Verify
 from Tool.File import *
 from Tool.Code import *
-from Gjf import *
+from Format.Gjf import *
 from openbabel import openbabel
 from scipy.spatial.distance import cdist
 import numpy as np
@@ -42,7 +42,7 @@ class Xyz:
 
         if para['mixset'] != '':
             def justelement(xyz, eles):
-                base_elements = Xyz.get_elements(xyz)
+                base_elements = Xyz.getelements(xyz)
                 exclusive_sets = []
 
                 for ele in eles:

@@ -15,7 +15,6 @@ from Applications.Gaussian import *
 from tqdm import tqdm
 from Data import *
 import concurrent.futures
-from concurrent.futures import ThreadPoolExecutor, wait
 
 class Mechanism_Calculation:
     

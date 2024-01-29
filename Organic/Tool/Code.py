@@ -26,7 +26,7 @@ class Code:
     def getcode(code:dict):
         Code = '# '
         # 生成opt部分
-        if code['opt']!='': #判断逻辑为opt不为空则加到code中，否则不进行opt计算
+        if code.get('opt','') != '': #判断逻辑为opt不为空则加到code中，否则不进行opt计算
             Code=Code+'opt=('+code['opt']+") "
         
         # 生成method部分
@@ -38,7 +38,7 @@ class Code:
         # 生成溶剂的的部分
         if code['solvent']!='':
             Code = Code+'scrf=(smd,solvent=' +code['solvent']+') '
-        Code = Code+code['additional']+' '
+        Code = Code+code.get('additional','')+' '
         return Code
 
 
@@ -50,14 +50,51 @@ class Code:
                  }
         fpara['code']=Code.getcode(para)
         return fpara
+    
+    # 将gjf命令解析拆分
 
+    def resvoling(para, opt='-1', method='-1', additional='-1', solvent='-1'):
 
+        units = para['code'].replace('# ', '').replace('freq', '').split(' ')
+        code = {}
+        code['additional'] = ''
+        code['solvent'] = ''
+        for unit in units:
+            if 'opt' in unit:
+                code['opt'] = unit.replace('opt=(', '').replace(')', '')
+            elif 'scrf' in unit:
+                code['solvent'] = unit.replace(
+                    'scrf=(smd,solvent=', '').replace(')', '')
+            else:
+                code['additional'] = code['additional']+unit
 
+        if opt != '-1':
+            code['opt'] = opt
+        if method != '-1':
+            code['method'] = method
+        if additional != '-1':
+            code['additional'] = additional
+        if solvent != '-1':
+            code['solvent'] = solvent
+
+        
+        return code
+
+        # codes = {'job': 0, 'Basiset': 0, 'DFT': 0}
+        # jobs = ['sp', 'opt', 'freq', 'IRC', 'scan']
+        # Basisets = ['3-21g', '6-31g', '6-311g', 'sdd', 'genecp',
+        #             'defTZVP', 'def2TZVP', 'def2TZVPP', 'def2QZVP']
+        # DFTs = ['B3lyp', 'pbe1pbe', 'wb97xd', 'm062x']
+        # for job in jobs:
+        #     if job in code:
+
+   
     def get(para: dict):
         fpara = {'nproc': str(para['nproc']), 'mem': para['mem'], 'name': para['name'],
-                 'charge': str(para['charge']), 'spin': str(para['spin']), 'method': para['method']
+                 'charge': str(para['charge']), 'spin': str(para['spin']), 'method': para['method'],
+                 'mixset':para['mixset']
                  }
-        fpara['code'] = Code.getcode(para)
+        fpara.update(Code.resvoling(para))
         return fpara
     
       
@@ -81,53 +118,6 @@ class Code:
                 code['additional'] = code['additional']+' '+unit
         return code
     
-
-    # 将gjf命令解析拆分
-
-    def resvoling(para, opt='-1', method='-1', additional='-1', solvent='-1'):
-
-        units = para['code'].replace('# ', '').replace('freq', '').split(' ')
-        code = {}
-        code['additional'] = ''
-        code['solvent'] = ''
-        for unit in units:
-            if 'opt' in unit:
-                code['opt'] = unit.replace('opt=(', '').replace(')', '')
-            elif '/' in unit:
-                code['method'] = unit
-            elif 'scrf' in unit:
-                code['solvent'] = unit.replace(
-                    'scrf=(smd,solvent=', '').replace(')', '')
-            else:
-                code['additional'] = code['additional']+unit
-
-        if opt != '-1':
-            code['opt'] = opt
-        if method != '-1':
-            code['method'] = method
-        if additional != '-1':
-            code['additional'] = additional
-        if solvent != '-1':
-            code['solvent'] = solvent
-
-        return Code.getopt(charge=para['charge'],
-                           opt=code['opt'],
-                           method=code['method'],
-                           additional=code['additional'],
-                           solvent=code['solvent'],
-                           nproc=para['nproc'],
-                           mem=para['mem'],
-                           name=para['name'],
-                           spin=para['spin']
-                           )[0]
-
-        # codes = {'job': 0, 'Basiset': 0, 'DFT': 0}
-        # jobs = ['sp', 'opt', 'freq', 'IRC', 'scan']
-        # Basisets = ['3-21g', '6-31g', '6-311g', 'sdd', 'genecp',
-        #             'defTZVP', 'def2TZVP', 'def2TZVPP', 'def2QZVP']
-        # DFTs = ['B3lyp', 'pbe1pbe', 'wb97xd', 'm062x']
-        # for job in jobs:
-        #     if job in code:
 
     # 获取gjf中的前后命令
 
