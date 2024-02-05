@@ -18,6 +18,7 @@ import concurrent.futures
 
 class Mechanism_Calculation:
     
+    
     def gjf_optimize(gjf: str, proname: str, index=1, solvent=''):
         Verify.Is([gjf, proname, index, solvent], [str, str, int, str])
         para = Gjf.getparameters(gjf)
@@ -151,6 +152,7 @@ class Mechanism_Calculation:
 
         return results
     
+    
     def xyz_optimize(xyz: str, proname: str, OPT: dict, index=1, solvent=''):
         Verify.Is([xyz, proname, OPT, index, solvent],
                   [str, str, dict, int, str])
@@ -174,6 +176,7 @@ class Mechanism_Calculation:
         gjfs = Xyz.togjfs(xyzs, OPT, charges,names)
         return Mechanism_Calculation.gjfs_optimize(gjfs, proname, indexs,solvents)
         #return Mechanism_Calculation.multrungjf(items)
+
 
     def smile_optimize(smile: str, proname: str, OPT: dict, index=1, solvent=''):
         Verify.Is([smile, proname, OPT, index, solvent],

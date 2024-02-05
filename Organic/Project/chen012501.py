@@ -81,5 +81,6 @@ if 'int=superfine' not in para['additional']:
 para['name'] = name+'_02'
 print(Code.topara(para))
     #进行第二次几何优化
+    
 gjf = Xyz.togjf(xyz, Code.topara(para))
 print(gjf)

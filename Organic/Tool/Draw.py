@@ -1,10 +1,11 @@
+
 from matplotlib import pyplot as plt
 import mplcursors
 import numpy as np
 from openbabel import openbabel as ob
 from rdkit import Chem
 from rdkit.Chem import AllChem
-
+from File import File
 #提供绘图工具
 class Draw:
     
@@ -113,5 +114,6 @@ class Draw:
     def draw_dline():
         print()
         
+a=Draw.draw_PESC([[0,15.03,-6,-79.74,-90.37,-59.91,-73.32]])
 
-
+File.tofile('test.cdxml',a)
