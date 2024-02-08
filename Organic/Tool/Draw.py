@@ -28,7 +28,6 @@ class Draw:
             atom = mol.NewAtom()
             atom.SetAtomicNum(6)  # Atomic number for carbon
             mol.AddAtom(atom)
-        print(xylines)
         atom_index = 0
         for points in xylines:
             for point in points:
@@ -114,6 +113,6 @@ class Draw:
     def draw_dline():
         print()
         
-a=Draw.draw_PESC([[0,15.03,-6,-79.74,-90.37,-59.91,-73.32]])
+a=Draw.draw_PESC([[0,22.02,-5.09,-8.35,-18.34,-37.14,-4.34,-15.82]])
 
 File.tofile('test.cdxml',a)
