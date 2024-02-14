@@ -59,13 +59,31 @@ class File:
             r.close
         return content
 
-    def getlist(filename):
+    def toexcel(filename, *args):
         filename = os.path.normpath(filename)
-        with open(filename,'r') as r:
-            content=r.readlines()
-            r.close()
-        return content
+        if filename.lower().endswith(('.xlsx', '.xls')):
+            import xlsxwriter as xw
+            workbook = xw.Workbook(filename)
+            worksheet1 = workbook.add_worksheet("Sheet1")
 
+            if len(args) > 1 or (isinstance(args[0][0], list) and len(args[0]) > 1):
+                if isinstance(args[0][0], list) and len(args[0]) > 1:
+                    args = args[0]
+
+                maxnum = max(len(a) for a in args)
+                for a in args:
+                    while len(a) < maxnum:
+                        a.append(0)
+
+                for i, row_data in enumerate(zip(*args), start=1):
+                    worksheet1.write_row(f'A{i}', row_data)
+
+            elif len(args) == 1:
+                for i, data in enumerate(args[0], start=1):
+                    worksheet1.write_row(f'A{i}', [data])
+
+            workbook.close()
+            
     def getexcel(filename):
         filename = os.path.normpath(filename)
         import pandas as pd
