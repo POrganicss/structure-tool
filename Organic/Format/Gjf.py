@@ -103,7 +103,3 @@ class Gjf:
         # 将坐标区域之后的内容添加到字典中
         para.update(get_mixset(Footer))
         return para
-
-gjf=File.getdata('D:\\BOrganic\\Desktop\\test.gjf')
-result=Gjf.toxyz(gjf)
-print(result[2])

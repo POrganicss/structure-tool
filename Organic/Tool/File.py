@@ -1,8 +1,12 @@
 
 #提供数据的读取和保存
+import os
+
+
 class File:
     #保存文件；filename:路径+文件名; content:输出的文本内容
     def tofile(filename='test', *args):
+        filename = os.path.normpath(filename)
         from openbabel import openbabel
         if isinstance(args[0], list):
             if filename.lower().endswith(('.xlsx', '.xls')):
@@ -49,18 +53,21 @@ class File:
                 raise ValueError("Failed to convert molecule")
     
     def getdata(filename):
+        filename = os.path.normpath(filename)
         with open(filename,'r',encoding='utf-8')as r:
             content=r.read()
             r.close
         return content
 
     def getlist(filename):
+        filename = os.path.normpath(filename)
         with open(filename,'r') as r:
             content=r.readlines()
             r.close()
         return content
 
     def getexcel(filename):
+        filename = os.path.normpath(filename)
         import pandas as pd
 
         # 读取Excel文件
@@ -78,8 +85,4 @@ class File:
     def totemp(content,filename='test'):
         print()
         
-    def getpath():
-        print()
-
-
 
