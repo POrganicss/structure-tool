@@ -1,4 +1,3 @@
-
 import os
 import __init__
 
@@ -15,7 +14,7 @@ from alive_progress import alive_bar
 from concurrent import futures
 from concurrent.futures import ThreadPoolExecutor, wait
 
-class Gaussian:
+class Gaussian: #提交gaussian任务的包，其中不涉及具体的任务类型
     path='/root/chen/Compute'
     sxyzs=[]
     #自动提交任务并监控任务的施行，并生成坐标数据

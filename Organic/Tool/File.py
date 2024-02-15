@@ -60,47 +60,45 @@ class File:
         return content
 
     def toexcel(filename, *args):
+        import xlsxwriter as xw
         filename = os.path.normpath(filename)
-        if filename.lower().endswith(('.xlsx', '.xls')):
-            import xlsxwriter as xw
-            workbook = xw.Workbook(filename)
-            worksheet1 = workbook.add_worksheet("Sheet1")
+        if not filename.lower().endswith(('.xlsx', '.xls')):
+            filename=filename+'.xlsx'
+        workbook = xw.Workbook(filename)
+        worksheet1 = workbook.add_worksheet("Sheet1")
 
-            if len(args) > 1 or (isinstance(args[0][0], list) and len(args[0]) > 1):
-                if isinstance(args[0][0], list) and len(args[0]) > 1:
-                    args = args[0]
+        if len(args) > 1 or (isinstance(args[0][0], list) and len(args[0]) > 1):
+            if isinstance(args[0][0], list) and len(args[0]) > 1:
+                args = args[0]
 
-                maxnum = max(len(a) for a in args)
-                for a in args:
-                    while len(a) < maxnum:
-                        a.append(0)
+            maxnum = max(len(a) for a in args)
+            for a in args:
+                while len(a) < maxnum:
+                    a.append(0)
 
-                for i, row_data in enumerate(zip(*args), start=1):
-                    worksheet1.write_row(f'A{i}', row_data)
+            for i, row_data in enumerate(zip(*args), start=1):
+                worksheet1.write_row(f'A{i}', row_data)
 
-            elif len(args) == 1:
-                for i, data in enumerate(args[0], start=1):
-                    worksheet1.write_row(f'A{i}', [data])
+        elif len(args) == 1:
+            for i, data in enumerate(args[0], start=1):
+                worksheet1.write_row(f'A{i}', [data])
 
-            workbook.close()
+        workbook.close()
             
-    def getexcel(filename):
-        filename = os.path.normpath(filename)
+    def getexcel(filename,column_index=0):
         import pandas as pd
-
-        # 读取Excel文件
-        excel_file_path = filename  # 将路径替换为你的Excel文件路径
-        column_name = 'Smile'  # 将列名替换为你要读取的列名
-
+        filename =filename.replace("\\", "\\\\")
+        
         # 使用pandas读取Excel文件
-        df = pd.read_excel(excel_file_path)
+        df = pd.read_excel(filename,header=None)
 
         # 将指定列的数据存储在列表中
-        column_data = df[column_name].tolist()
-            
+        #column_data = df[column_name].tolist()
+        column_data = df.iloc[:, column_index].tolist() 
+         
         return column_data
     
-    def totemp(content,filename='test'):
-        print()
-        
+
+xl=File.getexcel(r'C:\Users\10282\gitee\structure-tool\test.xlsx')
+print(xl)
 
