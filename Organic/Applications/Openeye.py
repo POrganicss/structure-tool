@@ -17,19 +17,12 @@ class Openeye:
         # 生成openeye命令
         command = []
         # -----------------------新建项目文件夹-----------------------#
-        command.append("mkdir " + os.path.join(path, "fixpka") + "\n")
-        command.append("mkdir " + os.path.join(path, "oeomega") + "\n")
-        command.append("mkdir " + os.path.join(path, "hybrid") + "\n")
-        command.append("mkdir " + os.path.join(path, "report") + "\n")
-
+        File.create_files(path,"fixpka", "oeomega", "hybrid", "report")
+        File.copy(path, os.path.join(path, "fixpka"), "Ligands.sdf")
+        File.copy(path,os.path.join(path, "hybrid"), "Protein.pdb")
+        
         # -----------------进行电荷平衡并生成分子3D构象----------------#
-        command.append(
-            "cp "
-            + os.path.join(path, "Ligands.sdf")
-            + " "
-            + os.path.join(path, "fixpka")
-            + "\n"
-        )
+        
         command.append(
             "fixpka "
             + " -in "
@@ -62,13 +55,7 @@ class Openeye:
         command = []
         
         # ------------------生成对接口袋并进行分子对接-----------------#
-        command.append(
-            "cp "
-            + os.path.join(path, "Protein.pdb")
-            + " "
-            + os.path.join(path, "hybrid")
-            + "\n"
-        )
+        
         command.append(
             "make_receptor "
             + " -p "
@@ -99,20 +86,8 @@ class Openeye:
         command = []
         
         # ------------------------生成对接结果------------------------#
-        command.append(
-            "cp "
-            + os.path.join(path, "hybrid", "hybrid.oeb.gz")
-            + " "
-            + os.path.join(path, "report")
-            + "\n"
-        )
-        command.append(
-            "cp "
-            + os.path.join(path, "hybrid", "receptor.oeb")
-            + " "
-            + os.path.join(path, "report")
-            + "\n"
-        )
+        File.copy(os.path.join(path, "hybrid"), os.path.join(path, "report"), "Protein.pdb", "receptor.oeb")
+        
         command.append(
             "docking_report"
             + " -mpi_np "

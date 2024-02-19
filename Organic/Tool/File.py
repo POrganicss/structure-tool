@@ -98,7 +98,26 @@ class File:
          
         return column_data
     
-
+    def copy(Patha,Pathb,*args):
+        import shutil
+        # 确保目标文件夹存在
+        if not os.path.exists(Pathb):
+            os.makedirs(Pathb)
+            
+        for filename in args:
+            source_file = os.path.join(Patha, filename)
+        destination_file = os.path.join(Pathb, filename)
+        shutil.copy(source_file, destination_file)
+        
+    def cp(Path,nameA,NameB,*args):
+        File.copy(os.path.join(Path,nameA),os.path.join(Path,NameB),*args)
+        
+    def create_files(Path,*args):
+        for filename in args:
+            file = os.path.join(Path, filename)
+            if not os.path.exists(file):
+                os.makedirs(file)
+       
 xl=File.getexcel(r'C:\Users\10282\gitee\structure-tool\test.xlsx')
 print(xl)
 
