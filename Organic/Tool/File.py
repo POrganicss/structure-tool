@@ -1,13 +1,10 @@
-
-#提供数据的读取和保存
 import os
-
-
+from openbabel import openbabel
+#提供数据的读取和保存
 class File:
     #保存文件；filename:路径+文件名; content:输出的文本内容
     def tofile(filename='test', *args):
-        filename = os.path.normpath(filename)
-        from openbabel import openbabel
+        
         if isinstance(args[0], list):
             if filename.lower().endswith(('.xlsx', '.xls')):
                 import xlsxwriter as xw
@@ -51,7 +48,12 @@ class File:
                     file.write(cdxml_string)
             else:
                 raise ValueError("Failed to convert molecule")
-    
+        elif isinstance(args[0], str):
+            content = args[0]
+            with open(filename,'w') as file:
+                file.write(content)
+                file.close
+        
     def getdata(filename):
         filename = os.path.normpath(filename)
         with open(filename,'r',encoding='utf-8')as r:
@@ -106,8 +108,8 @@ class File:
             
         for filename in args:
             source_file = os.path.join(Patha, filename)
-        destination_file = os.path.join(Pathb, filename)
-        shutil.copy(source_file, destination_file)
+            destination_file = os.path.join(Pathb, filename)
+            shutil.copy(source_file, destination_file)
         
     def cp(Path,nameA,NameB,*args):
         File.copy(os.path.join(Path,nameA),os.path.join(Path,NameB),*args)
@@ -117,7 +119,5 @@ class File:
             file = os.path.join(Path, filename)
             if not os.path.exists(file):
                 os.makedirs(file)
-       
-xl=File.getexcel(r'C:\Users\10282\gitee\structure-tool\test.xlsx')
-print(xl)
+
 

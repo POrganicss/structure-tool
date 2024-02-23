@@ -5,91 +5,28 @@ import re
 from rdkit.Chem import AllChem
 from rdkit import Chem
 from openbabel import OBMol, OBConversion
+from openbabel import openbabel, pybel
+
 class Smile:
 
-    '''   # 将smile分解成小单元
-    def smile_divides(smile):
-        def smile_unit(smile):
-            unit = []
-            prefixs = ["=", "/", "\\", "@"]
-            elements = ["Si", "Cl", "Br", "C", "N", "O", "F", "P", "S", "I"]
-            suffixsnumber = r"\d+"  # 数字
-
-            def match_and_append(pattern, s):
-                match = re.match(pattern, s)
-                if match:
-                    unit.append(match.group(0))
-                    return s.replace(match.group(0), "", 1), True
-                return s, False
-
-            # 匹配键型
-            for prefix in prefixs:
-                if smile.startswith(prefix):
-                    unit.append(prefix)
-                    smile = smile[len(prefix):]
-                    break
-
-            # 匹配元素
-            for element in elements:
-                if smile.startswith(element):
-                    unit.append(element)
-                    smile = smile[len(element):]
-                    break
-
-            # 匹配键型
-            for prefix in prefixs:
-                if smile.startswith(prefix):
-                    smile, matched = match_and_append(suffixsnumber, smile[1:])
-                    if matched:
-                        unit.append(prefix)
-                        break
-
-            # 匹配后缀数字
-            smile, matched = match_and_append(suffixsnumber, smile)
-            if not matched:
-                # 匹配后缀括号部分
-                while smile.startswith("("):
-                    bracket = []
-                    bracket.append(smile[0])
-                    smile = smile[1:]
-                    i = 1
-                    while i > 0:
-                        if smile.startswith("("):
-                            bracket.append(smile[0])
-                            smile = smile[1:]
-                            i = i + 1
-                        elif smile.startswith(")"):
-                            bracket.append(smile[0])
-                            smile = smile[1:]
-                            i = i - 1
-                        else:
-                            bracket.append(smile[0])
-                            smile = smile[1:]
-                    unit.append("".join(bracket))
-
-            return "".join(unit), smile
-        smile_units = []
-        while smile:
-            unit, smile = smile_unit(smile)
-            smile_units.append(unit)
-        return smile_units
-     '''
-    
     def smile_divide(smile):
-        def smile_unit(smile):
+        smile_units = []
+        prefixes = ["=", "/", "\\", "@",'#',"[","]"]
+        elements = ["Si", "Cl", "Br", "C", "N", "O", "F", "P", "S", "I"]
+        suffixsnumber = r"\d+"
+        chirality = "@@|@|\\|/"  # 添加手性表示
+        
+        def match_and_append(pattern, s):
+            match = re.match(pattern, s)
+            if match:
+                unit.append(match.group(0))
+                return s.replace(match.group(0), "", 1), True
+            return s, False
+        
+        while smile:
             unit = []
-            prefixes = ["=", "/", "\\", "@"]
-            elements = ["Si", "Cl", "Br", "C", "N", "O", "F", "P", "S", "I"]
-            suffixsnumber = r"\d+"
-            chirality = "@@|@|\\|/"  # 添加手性表示
-
-            def match_and_append(pattern, s):
-                match = re.match(pattern, s)
-                if match:
-                    unit.append(match.group(0))
-                    return s.replace(match.group(0), "", 1), True
-                return s, False
-
+            
+            print('-----------1------------')
             # 匹配键型
             for prefix in prefixes:
                 if smile.startswith(prefix):
@@ -97,20 +34,23 @@ class Smile:
                     smile = smile[len(prefix):]
                     break
 
+
+            print('-----------2------------')
             # 匹配元素
             for element in elements:
                 if smile.startswith(element):
                     unit.append(element)
                     smile = smile[len(element):]
                     break
-
+            
+            print('-----------3------------')
             # 匹配手性
             for chir in chirality.split('|'):
                 if smile.startswith(chir):
                     unit.append(chir)
                     smile = smile[len(chir):]
                     break
-
+            print('-----------4------------')
             # 匹配键型
             for prefix in prefixes:
                 if smile.startswith(prefix):
@@ -118,22 +58,23 @@ class Smile:
                     if matched:
                         unit.append(prefix)
                         break
-
+            print('-----------5------------')
             # 匹配后缀数字
             smile, matched = match_and_append(suffixsnumber, smile)
+            
             if not matched:
                 # 匹配后缀括号部分
-                while smile.startswith("("):
+                while smile.startswith(("(", "[")):
                     bracket = []
                     bracket.append(smile[0])
                     smile = smile[1:]
                     i = 1
                     while i > 0:
-                        if smile.startswith("("):
+                        if smile.startswith(("(", "[")):
                             bracket.append(smile[0])
                             smile = smile[1:]
                             i = i + 1
-                        elif smile.startswith(")"):
+                        elif smile.startswith((")", "]")):
                             bracket.append(smile[0])
                             smile = smile[1:]
                             i = i - 1
@@ -141,80 +82,62 @@ class Smile:
                             bracket.append(smile[0])
                             smile = smile[1:]
                     unit.append("".join(bracket))
-
-            return "".join(unit), smile
-
-        smile_units = []
-        while smile:
-            unit, smile = smile_unit(smile)
+            
+            unit="".join(unit)
+            print(unit)
             smile_units.append(unit)
         return smile_units
-    
-        
-    # 选择性对分子碎片加括号
-    def addbracket(Fragment, bracket):
-        if Fragment != "" and bracket == 1:
-            Fragment = "(" + Fragment + ")"
-        elif Fragment != "" and bracket == 0:
-            return Fragment
-        return Fragment
-
-    # 将smile的小单元按照确定位置进行重新组合
-    def keletsonsplit(smile_units, position):
-        return "".join(smile_units[:position-1]), "".join(smile_units[position-1:])
-
-    # 将某一部分与位置建立联系
-    def getconnect(positions, fragments):
-        for i in range(len(positions)-1):
-            for j in range(len(positions)-i-1):
-                if positions[j] < positions[j+1]:
-                    positions[j], positions[j+1] = positions[j+1], positions[j]
-                    fragments[j], fragments[j+1] = fragments[j+1], fragments[j]
-        Fragments = {}
-        for i in range(len(positions)):
-            Fragments[positions[i]] = fragments[i]
-        return Fragments
-
-    # 获得最大连接数
-    def getmaxcon(smile):
-        for i in range(9, 0, -1):
-            if str(i) in smile:
-                return i + 1
-        return -1
-
-    # 按照最大连接数修改碎片数值
-    def modifyfrag(frag, num):
-        if num == -1:
-            return frag
-        for i in range(9, 0, -1):
-            if str(i) in frag:
-                frag = frag.replace(str(i), str(i+num-1), 2)
-        return frag
-
+     
     def getsmile(Result, position, Fragments, bracket):
+        # 按照最大连接数修改碎片数值
+        def modifyfrag(frag, num):
+            if num == -1:
+                return frag
+            for i in range(9, 0, -1):
+                if str(i) in frag:
+                    frag = frag.replace(str(i), str(i+num-1), 2)
+            return frag
+        
         Results = []
         for result in Result:
             smile_units = Smile.smile_divide(result)
-            frg1, frg2 = Smile.keletsonsplit(smile_units, position)
-            maxnum = Smile.getmaxcon(result)
+            frg1, frg2 ="".join(smile_units[:position-1]), "".join(smile_units[position-1:])
+            digits = [int(char) for char in result if char.isdigit()]
+            maxnum = max(digits) + 1 if digits else -1
+            
             for Fragment in Fragments:
-                Fragment = Smile.modifyfrag(Fragment, maxnum)
-                Fragment = Smile.addbracket(Fragment, bracket)
+                Fragment = modifyfrag(Fragment, maxnum)
+                
+                Fragment = f"({Fragment})" if bracket == 1 else Fragment
                 Results.append("".join(frg1 + Fragment + frg2))
         return Results
 
-    # 计算效率公式 单核单线程：time=exp(0.8951*log3(x)-9.3175)
+    # 计算效率公式 单核单线程：
     def getsmiless(skeleton, positions, Fragments, brackets=[-1]):
+        # 将某一部分与位置建立联系
+        def getconnect(positions, fragments):
+            for i in range(len(positions)-1):
+                for j in range(len(positions)-i-1):
+                    if positions[j] < positions[j+1]:
+                        positions[j], positions[j+1] = positions[j+1], positions[j]
+                        fragments[j], fragments[j+1] = fragments[j+1], fragments[j]
+            Fragments = {}
+            for i in range(len(positions)):
+                Fragments[positions[i]] = fragments[i]
+            return Fragments
+
         if len(brackets) == 1 and brackets[0] == -1:
-            brackets = Smile.getbrackets(len(positions))
-        Fragments = Smile.getconnect(positions, Fragments)
-        brackets = Smile.getconnect(positions, brackets)
+            brackets = [1 for _ in range(len(positions))]
+        Fragments = getconnect(positions, Fragments)
+        brackets = getconnect(positions, brackets)
         Result = [skeleton]
         for position in positions:
             Result = Smile.getsmile(Result, position,
                                     Fragments[position], brackets[position]
                                     )
         return Result
+
+
 
     # 将smiles转换成xyz文件
     def rdkitoxyz(smile):
@@ -240,14 +163,17 @@ class Smile:
 
     def openbabeltoxyz(smile):
         try:
-            # Create an OBMol object and set the input SMILES
-            mol = OBMol()
-            mol.SetData(smile)
+            # Create a molecule from SMILES string
+            mol = pybel.readstring("smi", smile)
 
-            # Perform conversion using Open Babel
-            conv = OBConversion()
-            conv.SetInAndOutFormats("smi", "xyz")
-            xyz_data = conv.WriteString(mol)
+            # Add hydrogens
+            mol.OBMol.AddHydrogens()
+
+            # Generate 3D coordinates
+            mol.make3D()
+
+            # Convert to XYZ format
+            xyz_data = mol.write("xyz")
             
             return xyz_data
 
@@ -256,6 +182,12 @@ class Smile:
             # Handle exceptions and provide useful error information
             return f"Error during conversion: {str(e)}"
 
+    def toxyz(smile):
+        try:
+            return Smile.openbabeltoxyz(smile)
+        except Exception :
+            return Smile.rdkitoxyz(smile)
+    
     def rdkitosdf(smile):
         mol = Chem.MolFromSmiles(smile)
 
@@ -429,8 +361,4 @@ class Smile:
             ]
         return fragment
 
-    def getbrackets(number):
-        li = []
-        for _ in range(number):
-            li.append(1)
-        return li
+    

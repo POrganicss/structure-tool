@@ -26,24 +26,12 @@ class Datatransmission:
         err = stderr.read().decode()
         ssh.close()
 
-    def Command(content):
-        # 使用Popen创建进程，并与进程进行复杂的交互
-        proc = subprocess.Popen(
-            content,  # cmd特定的查询空间的命令
-            stdin=None,  # 标准输入 键盘
-            stdout=subprocess.PIPE,  # -1 标准输出（演示器、终端) 保存到管道中以便进行操作
-            stderr=subprocess.PIPE,  # 标准错误，保存到管道
-            shell=True,
-        ).wait()
-        # outinfo, errinfo = proc.communicate()   # 获取输出和错误信息
-        # return outinfo.decode('gbk'), errinfo.decode('gbk')
-        return proc
 
     def Filetransmission(remove_path, local_path):
-        SSH = paramiko.Transport(("192.168.3.98", 22))
-        SSH.connect(username="root", password="shuoxing614")
+        SSH = paramiko.Transport((Datatransmission.hostname, Datatransmission.port))
+        SSH.connect(Datatransmission.username, Datatransmission.password)
         sftp = paramiko.SFTPClient.from_transport(SSH)
-
+        
         sftp.get(os.path.normpath(remove_path), os.path.normpath(local_path))
         sftp.close()
         SSH.close()
@@ -90,8 +78,10 @@ class LocalCommand:
             shell=True,
         )
         outinfo, errinfo = proc.communicate()  # 获取输出和错误信息
+        print(outinfo.decode("gbk"))
+        print(errinfo.decode("gbk"))
         return outinfo.decode("gbk")
 
     @staticmethod
     def exists(path):
-        return os.path.exists(os.path.normpath(path))
+        return os.path.exists(path)
