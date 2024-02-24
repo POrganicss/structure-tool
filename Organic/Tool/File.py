@@ -1,5 +1,6 @@
 import os
 from openbabel import openbabel
+import glob
 #提供数据的读取和保存
 class File:
     #保存文件；filename:路径+文件名; content:输出的文本内容
@@ -120,4 +121,14 @@ class File:
             if not os.path.exists(file):
                 os.makedirs(file)
 
+    def getfile_name(path,_format):
+        _format="."+_format
+        file_list = []
+        for file in os.listdir(path):
+            if file.lower().endswith(_format.lower()):  # 使用lower()函数将文件名和目标格式都转换为小写，然后进行比较
+                file_path = os.path.join(path, file)
+                new_file_name = os.path.join(path, os.path.splitext(file)[0] + _format.lower())  # 将实际的文件名后缀改为小写
+                os.rename(file_path, new_file_name)  # 修改实际文件名的后缀为小写
+                file_list.append(os.path.splitext(os.path.basename(new_file_name))[0])  # 获取不带后缀的文件名并添加到列表中
+        return file_list
 

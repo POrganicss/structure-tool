@@ -6,7 +6,7 @@ from Tool.File import File
 
 
 class Openeye:
-    
+    #分子对接
     def run(proname, path, Ligands, Protein, nproc):
         path = os.path.join(path, proname)
         
@@ -154,9 +154,8 @@ def openeye_test():
     path="D:\\BOrganic\\Desktop\\cs01" # 项目路径
     Ligands=File.getdata(path+"/CS-7-YA.sdf") #读取配体Ligands.sdf文件
     Protein=File.getdata(path+"/4agd_DeW.pdb") #读取蛋白质Protein.pdb文件
-    print(type(Ligands))
     # 6, nproc数为并行计算的核心数
 
     Openeye.run("Test24022301", path, Ligands, Protein, nproc=6)
-    
+    #2941954675@Cs
 openeye_test()
