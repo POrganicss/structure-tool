@@ -8,9 +8,9 @@
     #-mpi_hostfile (Not set, no default)
 
 #File Options :   
-    -in  D:\BOrganic\Desktop\cs01\Test24022301\oeomega\Ligands_fixpka.oeb.gz
-    -log  D:\BOrganic\Desktop\cs01\Test24022301\oeomega\oeomega_pose.log
-    -out  D:\BOrganic\Desktop\cs01\Test24022301\oeomega\Ligands_fixpka_oeomega.oeb.gz
+    -in  D:\BOrganic\Desktop\cs01\Test24022301\fixpka_oeomega\CS-7-YA_fixpka.oeb.gz
+    -log  D:\BOrganic\Desktop\cs01\Test24022301\fixpka_oeomega\oeomega_pose.log
+    -out  D:\BOrganic\Desktop\cs01\Test24022301\fixpka_oeomega\CS-7-YA_fixpka_oeomega.oeb.gz
     #-pendingFile (Not set, no default)
     #-prefix  oeomega_pose
     -progress  log

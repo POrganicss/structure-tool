@@ -78,8 +78,8 @@ class LocalCommand:
             shell=True,
         )
         outinfo, errinfo = proc.communicate()  # 获取输出和错误信息
-        print(outinfo.decode("gbk"))
-        print(errinfo.decode("gbk"))
+        #print(outinfo.decode("gbk"))
+        #print(errinfo.decode("gbk"))
         return outinfo.decode("gbk")
 
     @staticmethod

@@ -1,97 +1,42 @@
 import os
 import __init__
 from Format.Pdb import Pdb
+from Format.Sdf import Sdf
 from Tool.Datatransmission import LocalCommand
 from Tool.File import File
 
-
 class Openeye:
     #分子对接
-    def run(proname, path, Ligands, Protein, nproc):
-        path = os.path.join(path, proname)
-        
-        if not os.path.exists(path):
-            os.makedirs(path)
-
-        File.tofile(path + "\\Ligands.sdf", Ligands)  # 将sdf文件写入文件
-        File.tofile(path + "\\Protein.pdb", Protein)  # 将pdb文件写入文件
+    def run(path, Ligands_name, Protein_name, nproc):
 
         # 生成openeye命令
         command = []
         # -----------------------新建项目文件夹-----------------------#
-        File.create_files(path,"fixpka", "oeomega", "hybrid", "report")
-        File.copy(path, os.path.join(path, "fixpka"), "Ligands.sdf")
-        File.copy(path,os.path.join(path, "hybrid"), "Protein.pdb")
+        File.create_files(path, "fixpka_oeomega", "hybrid", "report")
+        File.copy(path, os.path.join(path, "fixpka_oeomega"), Ligands_name+".sdf")
+        File.copy(path,os.path.join(path, "hybrid"), Protein_name+".pdb")
         
         
         # -----------------进行电荷平衡并生成分子3D构象----------------#
-        command.append(
-            "fixpka "
-            + " -in "
-            + os.path.join(path, "fixpka", "Ligands.sdf")
-            + " -out "
-            + os.path.join(path, "fixpka", "Ligands_fixpka.oeb.gz")
-            + " && "
-        )
+        Sdf.get_oeomega(os.path.join(path, "fixpka_oeomega"),Ligands_name,nproc=nproc)
         
-        command.append(
-            "copy "
-            + os.path.join(path, "fixpka", "Ligands_fixpka.oeb.gz")
-            + " "
-            + os.path.join(path, "oeomega")
-            + " && "
-        )
-        
-        command.append(
-            "oeomega "
-            + " pose "
-            + " -mpi_np "
-            + str(nproc)
-            + " -in "
-            + os.path.join(path, "oeomega", "Ligands_fixpka.oeb.gz")
-            + " -out "
-            + os.path.join(path, "oeomega", "Ligands_fixpka_oeomega.oeb.gz")
-            + " -log "
-            + os.path.join(path, "oeomega", "oeomega_pose.log")
-            + " -progress "
-            + "log"
-            + "\n"
-        )
-        LocalCommand.execute_command(''.join(command))
-        print("3D构象生成完成！")
-        command = []
+        File.cp(path,"fixpka_oeomega","hybrid",Ligands_name+"_fixpka_oeomega.oeb.gz")
         
         # ------------------生成对接口袋并进行分子对接-----------------#
-        command.append(
-            "pdb2receptor "
-            + " -pdb "
-            + os.path.join(path, "hybrid", "Protein.pdb")
-            + " -ligand_residue "
-            + Pdb.get_ligand_residue(Protein)
-            + " -receptor "
-            + os.path.join(path, "hybrid", "receptor.oeb.gz")
-            + " && "
-        )
+        Pdb.get_receptor(os.path.join(path, "hybrid"),Protein_name)
         
-        command.append(
-            "copy "
-            + os.path.join(path, "oeomega", "Ligands_fixpka_oeomega.oeb.gz")
-            + " "
-            + os.path.join(path, "hybrid")
-            + " && "
-        )
         command.append(
             "hybrid "
             + " -mpi_np "
             + str(nproc)
             + " -receptor "
-            + os.path.join(path, "hybrid", "receptor.oeb.gz")
+            + os.path.join(path, "hybrid", Protein_name+"_clean_receptor.oeb.gz")
             + " -dbase "
-            + os.path.join(path, "hybrid", "Ligands_fixpka_oeomega.oeb.gz")
+            + os.path.join(path, "hybrid", Ligands_name+"_fixpka_oeomega.oeb.gz")
             + " -docked_molecule_file "
-            + os.path.join(path, "hybrid", "hybrid_docked_molecule.sdf")
+            + os.path.join(path, "hybrid", Ligands_name+"_"+Protein_name+"hybrid_docked_molecule.sdf")
             + " -undocked_molecule_file "
-            + os.path.join(path, "hybrid", "hybrid_undocked_molecul.sdf")
+            + os.path.join(path, "hybrid", Ligands_name+"_"+Protein_name+"hybrid_undocked_molecule.sdf")
             + " -score_file "
             + os.path.join(path, "hybrid", "hybrid_score.txt")
             + " -report_file "
@@ -108,14 +53,14 @@ class Openeye:
         command = []
         
         # ------------------------生成对接结果------------------------#
-        File.copy(os.path.join(path, "hybrid"), os.path.join(path, "report"), "hybrid_docked_molecule.sdf", "receptor.oeb.gz")
+        File.copy(os.path.join(path, "hybrid"), os.path.join(path, "report"), Ligands_name+"_"+Protein_name+"hybrid_docked_molecule.sdf", Protein_name+"_clean_receptor.oeb.gz")
         
         command.append(
             "docking_report"
             + " -docked_poses "
-            + os.path.join(path, "hybrid", "hybrid_docked_molecule.sdf")
+            + os.path.join(path, "hybrid", Ligands_name+"_"+Protein_name+"hybrid_docked_molecule.sdf")
             + " -receptor "
-            + os.path.join(path, "report", "receptor.oeb.gz")
+            + os.path.join(path, "report", Protein_name+"_clean_receptor.oeb.gz")
             + " -report "
             + os.path.join(path, "report", "report.pdf")
             + "\n"
@@ -149,13 +94,3 @@ class Openeye:
         oechem.OEWriteMolecule(oechem.oemolostream("docked_ligand.sdf"), ligand)
 
 
-def openeye_test():
-    # Test24022301为项目名称
-    path="D:\\BOrganic\\Desktop\\cs01" # 项目路径
-    Ligands=File.getdata(path+"/CS-7-YA.sdf") #读取配体Ligands.sdf文件
-    Protein=File.getdata(path+"/4agd_DeW.pdb") #读取蛋白质Protein.pdb文件
-    # 6, nproc数为并行计算的核心数
-
-    Openeye.run("Test24022301", path, Ligands, Protein, nproc=6)
-    #2941954675@Cs
-openeye_test()

@@ -1,31 +1,35 @@
 import __init__
 import os
-import glob
 from Tool.Datatransmission import LocalCommand as LC
 from Tool.File import File
 class Pdb:
+    
     def get_receptor(path,Protein_name):
-        if not os.path.exists(os.path.join(path, "Receptor")):
-            os.makedirs(os.path.join(path, "Receptor"))
         Protein=File.getdata(os.path.join(path,Protein_name+'.pdb'))
-        print(Pdb.get_ligand_residue(Protein))
+        
+        chain=Pdb.simplify_chain(os.path.join(path,Protein_name+'.pdb'))
+        Protein_name=Protein_name+"_clean"
+        new_protein,max_Nosidues_name=Pdb.clean(chain)
+        File.tofile(os.path.join(path,Protein_name+'.pdb'),new_protein)
+        print(max_Nosidues_name)
         if Pdb.get_ligand_residue(Protein) is not None:
-            print(Protein_name)
             LC.execute_command(
                 "pdb2receptor "
                 + " -pdb "
                 + os.path.join(path,  Protein_name+'.pdb')
                 + " -ligand_residue "
-                + Pdb.get_ligand_residue(Protein)
+                + max_Nosidues_name
                 + " -receptor "
-                + os.path.join(path, "Receptor",  Protein_name+"_receptor.oeb.gz")
+                + os.path.join(path,  Protein_name+"_receptor.oeb.gz")
                 +'\n'
             )
-    
+            
+        #return File.getdata(os.path.join(path,Protein_name+"_receptor.oeb.gz"))
+        
     def get_receptors(path):
-        Proteins = File.getfile_name(path,'pdb')
-        for Protein in Proteins:
-            Pdb.get_receptor(path,Protein)
+        Protein_names = File.getfile_name(path,'pdb')#获取该路径下所有pdb文件名字
+        for Protein_name in Protein_names:#遍历所有pdb文件名
+            Pdb.get_receptor(path,Protein_name)
             
     def get_ligand_residue(pdb):
 
@@ -45,65 +49,60 @@ class Pdb:
         if not residues:
             return None
         # 找到原子数最多的残基名称
-        print(residues)
         max_residue_name = max(residues, key=residues.get)
         return max_residue_name
     
-    def protein_deal(Protein):
-        #-----------清除额外数据-----------#
-        residues = {}  # 创建一个字典来存储每个残基名称及其对应的原子数
-        exclude_list=['HOH',"SO4","PO4","CL"]
-        lines = Protein.splitlines()
-        new_lines=[]
-        for line in lines:
-            if line.startswith("HETATM"): 
-                columns = line.split()
-                residue_name = columns[3]
-                if residue_name not in exclude_list:
-                    if residue_name not in residues:
-                        residues[residue_name] = 0
-                    residues[residue_name] += 1
-                    new_lines.append(line)
-            else:
-                new_lines.append(line)
-        max_residue_name = max(residues, key=residues.get)
-        Protein = '\n'.join(new_lines)
-        print(max_residue_name)
-        #-----------读取重复单元-----------#
-        Nosidues = {}  # 创建一个字典来存储每个残基名称及其对应的原子数
-        lines = Protein.splitlines()
-        new_lines=[]
-        for line in lines:
-            if line.startswith("HETATM"): 
-                columns = line.split()
-                residue_name = columns[3]
-                No_name=columns[4]
-                if residue_name == max_residue_name:
-                    if No_name not in Nosidues:
-                        Nosidues[No_name] = 0
-                    Nosidues[No_name] += 1
-        
-        print(Nosidues)
-        if Nosidues:
-            max_value = max(Nosidues.values())
-            max_Nosidues_name = next(key for key, value in Nosidues.items() if value == max_value)
+    def simplify_chain(Protein_path):
+        import random
+        import os
+        from Bio import PDB
+
+        # 创建PDB解析器
+        parser = PDB.PDBParser(QUIET=True)
+
+        # 解析PDB文本
+        structure = parser.get_structure("pdb_structure", Protein_path)
+
+        # 遍历每一个链，记录是否包含小分子
+        chains_with_ligands = []
+        chains_without_ligands = []
+        for model in structure:
+            for chain in model:
+                has_ligand = any(atom.element == "H" for atom in chain.get_atoms() if atom.id == "HETATM")
+                if has_ligand:
+                    chains_with_ligands.append(chain)
+                else:
+                    chains_without_ligands.append(chain)
+
+        # 如果PDB中只有一条链，则不进行修改，直接返回原始PDB文本
+        if len(chains_with_ligands) + len(chains_without_ligands) == 1:
+            return File.getdata(Protein_path)
+
+        # 优先选择包含小分子的链，如果没有，则随机选择一个链
+        if chains_with_ligands:
+            selected_chain = random.choice(chains_with_ligands)
         else:
-            max_Nosidues_name = None
-        print(max_Nosidues_name)
-        #-----------删除重复单元-----------#
-      
-        for line in lines:
-            if line.startswith("HETATM"): 
-                columns = line.split()
-                residue_name = columns[4]
-                if residue_name != max_Nosidues_name:  # 修改此处的判断条件
-                    new_lines.append(line)
-            else:
-                new_lines.append(line)
-        # 将修改后的行重新组合成字符串
-        new_protein = '\n'.join(new_lines)
-        return new_protein
+            selected_chain = random.choice(chains_without_ligands)
+
+        # 创建PDB输出对象
+        io = PDB.PDBIO()
+
+        # 设置输出文件的结构为选定的链
+        io.set_structure(selected_chain)
+
+        # 创建一个内存中的文件对象，用于保存PDB文本
+        temp_out_file = io.save("temp_out.pdb")
+
+        # 读取临时输出的PDB文件内容
+        with open("temp_out.pdb", "r") as temp_out_file:
+            new_protein = temp_out_file.read()
         
+        # 移除临时文件
+        os.remove("temp_out.pdb")
+        
+        return new_protein
+    
+    #蛋白质处理程序，1.去除
     def clean_protein(Protein):
         # 清除额外数据
         exclude_list = ['HOH', "SO4", "PO4", "CL"]
@@ -149,10 +148,26 @@ class Pdb:
         cleaned_protein = '\n'.join(cleaned_lines)
         
         return cleaned_protein,max_residue_name
-    
-path="D:\\BOrganic\\Desktop\\cs01\Protein\\W\\3g0f.pdb"
-Protein=File.getdata(path)
-new_protein=Pdb.clean_protein(Protein)
 
-file_path="D:\\BOrganic\\Desktop\\cs01\Protein\\W\\3g0f_RR.pdb"
-File.tofile(file_path,new_protein)
+    def clean(Protein):
+        residues={}
+        exclude_list=['HOH',"SO4","PO4","CL"]
+        lines = Protein.splitlines()
+        new_lines=[]
+        for line in lines:
+            if line.startswith("HETATM"): 
+                columns = line.split()
+                residue_name=columns[3]
+                if columns[3] not in exclude_list:
+                    if residue_name not in residues:
+                        residues[residue_name] = 0
+                    residues[residue_name] += 1
+                    new_lines.append(line)
+            else:
+                new_lines.append(line)
+        if residues:
+            max_Nosidues_name = next(iter(residues.keys()))  # 或者使用 next(iter(Nosidues.items()))[0]
+        else:
+            max_Nosidues_name = None
+        return '\n'.join(new_lines),max_Nosidues_name
+
