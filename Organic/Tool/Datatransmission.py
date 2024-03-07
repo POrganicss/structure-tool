@@ -82,6 +82,23 @@ class LocalCommand:
         #print(errinfo.decode("gbk"))
         return outinfo.decode("gbk")
 
+
+    def submit(command):
+        import wexpect
+        """
+        执行系统命令并允许与进程进行交互。
+        
+        :param initial_command: 要执行的初始命令字符串。
+        :return: 一个wexpect的子程序对象，可用于后续与进程的交互。
+        """
+        if not command:  # 检查命令是否为空
+            raise ValueError("命令不能为空")
+        
+        # 启动子进程
+        child = wexpect.spawn(command, timeout=None)  # 设置timeout=None使其不会超时
+        return child  # 返回子进程对象以供进一步交互
+    
+    
     @staticmethod
     def exists(path):
         return os.path.exists(path)

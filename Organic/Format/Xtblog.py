@@ -34,8 +34,3 @@ class Xtblog:
         return xyzs,energy
 
   
-data = File.getdata('C:\\Users\\10282\\OneDrive\\桌面\\xtbscan.log')
-xyzs,en=Xtblog.toxyz(data)
-x = Xyz.getparameter(xyzs, 8, 5, 1, 4)
-Compute.draws(x, en)
-

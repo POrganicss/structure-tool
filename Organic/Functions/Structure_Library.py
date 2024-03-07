@@ -34,7 +34,7 @@ class Structure_Library:
 
         sdfs = Xyz.tosdfs(xyzs)  # 将xyz文件转换为sdf文件
 
-        File.tofile(sdfs, path+'/all.sdf')  # 保存sdf文件
+        File.save(sdfs, path+'/all.sdf')  # 保存sdf文件
 
     def getmultlibrary(projectname: str, smile: str, positions: list, fragments: list, brackets: list):
         print('------------gjf生成中------------')
@@ -54,7 +54,7 @@ class Structure_Library:
             os.remove(path2)
 
         sdfs = Xyz.tosdfs(xyzs)  # 将xyz文件转换为sdf文件
-        File.tofile(sdfs, path+'/all.sdf')  # 保存sdf文件
+        File.save(sdfs, path+'/all.sdf')  # 保存sdf文件
         
     def getmult(projectname: str, smile: str, positions: list, fragments: list, brackets: list):
         print('------------gjf生成中------------')
@@ -113,4 +113,4 @@ xyz=Smile.toxyzs(Three_times)
 print(len(xyz))
 
 # filename = r'D:\\smile.xls'
-# File.tofile(filename,Three_times)
+# File.save(filename,Three_times)

@@ -53,7 +53,7 @@ class Toxyz:
     
     
     def openbabeltoxyz(smile):
-        File.tofile(smile, path+'/temp02.smi')
+        File.save(smile, path+'/temp02.smi')
 
         conv = openbabel.OBConversion()  # 使用openbabel模块中的OBConversion函数，用于文件格式转换的
 

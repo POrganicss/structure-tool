@@ -168,7 +168,7 @@ class Log:
 # filename='C:\\Users\\10282\\OneDrive\\桌面\\data02.xlsx'
 # #File.toxexcels(filename, B5_21, Di9_5_21_23, Information['Force'])
 # data=Compute.renormalization(B3_13, Di12_3_13_15, Information['Force'])
-# File.tofile(filename, data)
+# File.save(filename, data)
 
 
 # # Draw.draw_line(Di12_3_13_15, Information['Force'], labels={

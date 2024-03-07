@@ -43,3 +43,18 @@ class Sdf:
         LC.execute_command("".join(command))
         
         #return File.getdata(os.path.join(path, Ligand_name + "_fixpka_oeomega.oeb.gz"))
+
+    def renames(ligands,names:list):
+        modules=ligands.split("$$$$")
+        new_modules=[]
+        for i,module in enumerate(modules):
+            lines=module.splitlines()
+            if len(lines)>1:
+                if "-MTS-"in lines[1]:
+                    lines[0]=names[i]
+                elif "-MTS-"in lines[2]:
+                    lines[1]=names[i]
+                new_modules.append("\n".join(lines))
+        return "$$$$".join(new_modules)+"$$$$"+'\n'
+    
+     

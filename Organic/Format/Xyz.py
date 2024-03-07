@@ -172,7 +172,7 @@ class Xyz:
     # 将xyz转换为sdf文件
     def tosdf(xyz):
         xyz = Xyz.toxyz(xyz)
-        File.tofile(xyz, path+'/temp02.xyz')
+        File.save(xyz, path+'/temp02.xyz')
         # Xyz.xyztosdf(path+'/temp02.xyz',path+'/temp02.sdf')
 
         conv = openbabel.OBConversion()  # 使用openbabel模块中的OBConversion函数，用于文件格式转换的

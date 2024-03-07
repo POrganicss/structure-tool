@@ -7,8 +7,8 @@ class Gromacs:
         path = os.path.join(path, proname)
         os.makedirs(path)
 
-        File.tofile(path + "/Protein.pdb", protein)  # 将sdf文件写入文件
-        File.tofile(path + "/ligand.pdb", ligand)  # 将pdb文件写入文件
+        File.save(path + "/Protein.pdb", protein)  # 将sdf文件写入文件
+        File.save(path + "/ligand.pdb", ligand)  # 将pdb文件写入文件
 
         # 生成gromacs命令
         command = []

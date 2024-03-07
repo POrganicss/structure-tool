@@ -115,4 +115,4 @@ class Draw:
         
 a=Draw.draw_PESC([[0,22.02,-5.09,-8.35,-18.34,-37.14,-4.34,-15.82]])
 
-File.tofile('test.cdxml',a)
+File.save('test.cdxml',a)

@@ -1,17 +1,16 @@
 import os
 from openbabel import openbabel
 import glob
+
+import psutil
 #提供数据的读取和保存
 class File:
-    #保存文件；filename:路径+文件名; content:输出的文本内容
-    def tofile(filename='test', *args):
-        
-        if isinstance(args[0], list):
-            if filename.lower().endswith(('.xlsx', '.xls')):
+    def save(path,*args):
+        match path.split('.')[-1].lower():  # 根据文件扩展名判断
+            case 'xlsx' | 'xls':
                 import xlsxwriter as xw
-                workbook = xw.Workbook(filename)
+                workbook = xw.Workbook(path)
                 worksheet1 = workbook.add_worksheet("Sheet1")
-
                 if len(args) > 1 or (isinstance(args[0][0], list) and len(args[0]) > 1):
                     if isinstance(args[0][0], list) and len(args[0]) > 1:
                         args = args[0]
@@ -20,41 +19,54 @@ class File:
                     for a in args:
                         while len(a) < maxnum:
                             a.append(0)
-
                     for i, row_data in enumerate(zip(*args), start=1):
                         worksheet1.write_row(f'A{i}', row_data)
-
                 elif len(args) == 1:
                     for i, data in enumerate(args[0], start=1):
                         worksheet1.write_row(f'A{i}', [data])
-
                 workbook.close()
-
-            else:
-                content = '\n'.join(args[0])
-                try:
-                    with open(filename, 'w') as file:
-                        file.write(content)
-                except Exception as e:
-                    print(e)
-
-        elif isinstance(args[0], openbabel.OBMol):  # 如果args[0]是OBMol数据
-            conv = openbabel.OBConversion()
-            output_format = filename.split('.')[-1] if '.' in filename else 'cdxml'
-            conv.SetOutFormat(output_format)
-            cdxml_string = conv.WriteString(args[0])
-
-            if cdxml_string is not None:
-                with open(filename, "w") as file:
-                    file.write(cdxml_string)
-            else:
-                raise ValueError("Failed to convert molecule")
-        elif isinstance(args[0], str):
-            content = args[0]
-            with open(filename,'w') as file:
-                file.write(content)
-                file.close
-        
+            case 'cdxml':
+                conv = openbabel.OBConversion()
+                output_format = path.split('.')[-1] if '.' in path else 'cdxml'
+                conv.SetOutFormat(output_format)
+                cdxml_string = conv.WriteString(args[0])
+                if cdxml_string is not None:
+                    with open(path, "w") as file:
+                        file.write(cdxml_string)
+                else:
+                    raise ValueError("Failed to convert molecule")
+            case _:
+                match args:
+                    case [element] if isinstance(element, str):
+                        # 获取系统的可用内存
+                        available_memory = psutil.virtual_memory().available
+                        # 假设我们将可用内存的一部分（例如，1/4）用作分块大小
+                        chunk_size = max(int(available_memory / 4), 1 * 1024 * 1024)  # 保证最小分块为1MB
+                        data=args[0]
+                        # 如果数据小于分块大小，则直接写入
+                        if len(data) <= chunk_size:
+                            with open(path, 'w') as file:
+                                file.write(data)
+                        # 如果数据大于分块大小，则分块写入
+                        else:
+                            with open(path, 'w') as file:
+                                for i in range(0, len(data), chunk_size):
+                                    file.write(data[i:i + chunk_size])
+                    
+                    case [element] if isinstance(element, list):
+                        return "二:一个元素且是list类型"
+                    case elements if all(isinstance(el, str) for el in elements):
+                        return "三:多个元素且都是str类型"
+                    case elements if all(isinstance(el, list) for el in elements):
+                        return "四:多个元素且都是list类型"
+                    case _:
+                        return "五:其他情况"
+                
+                
+                #判断args是否只有一个数据，且第一个数据是不是str类型
+                if isinstance(args[0], str):
+                    
+          
     def getdata(filename):
         filename = os.path.normpath(filename)
         with open(filename,'r',encoding='utf-8')as r:
@@ -100,6 +112,16 @@ class File:
         column_data = df.iloc[:, column_index].tolist() 
          
         return column_data
+    
+    def getpdf(path):
+        import PyPDF2
+        contents = []
+        with open(path, 'rb') as file:
+            reader = PyPDF2.PdfReader(file)
+            num_pages = len(reader.pages)
+            for page_num in range(num_pages):
+                contents.append(reader.pages[page_num].extract_text())
+        return contents
     
     def copy(Patha,Pathb,*args):
         import shutil
