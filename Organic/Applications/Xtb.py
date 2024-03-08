@@ -34,7 +34,7 @@ class Xtb:
         # 获取临时文件的文件名（不含路径和后缀）
         result_name = os.path.splitext(os.path.basename(xyz_file.name))[0] + ".log"
         # 读取xtb结果文件
-        result = File.getdata(result_name + ".log发")
+        result = File.read(result_name + ".log发")
 
         # 删除结果文件
         os.remove(result_name)

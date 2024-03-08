@@ -148,7 +148,7 @@ class Log:
             Draw.draw_line('', Info[babel], limit=[limit_value, 10])
     
     def getall(file):
-        log = File.getdata(file)
+        log = File.read(file)
         Information = Log.getopearationinformations(log)
         xyzs = Log.getxyzs(log)
         return Information,xyzs

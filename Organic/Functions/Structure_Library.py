@@ -49,7 +49,7 @@ class Structure_Library:
         xyzs = []
         for i in range(len(smiles)):
             path2 = path+'/Temp/'+Code.getname(['proj', str(i+1)])+'.xyz'
-            xyz = File.getdata(path2)
+            xyz = File.read(path2)
             xyzs.append(xyz)
             os.remove(path2)
 

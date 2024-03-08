@@ -42,7 +42,7 @@ class Sdf:
         )
         LC.execute_command("".join(command))
         
-        #return File.getdata(os.path.join(path, Ligand_name + "_fixpka_oeomega.oeb.gz"))
+        #return File.read(os.path.join(path, Ligand_name + "_fixpka_oeomega.oeb.gz"))
 
     def renames(ligands,names:list):
         modules=ligands.split("$$$$")

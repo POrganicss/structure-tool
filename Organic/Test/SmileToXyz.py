@@ -63,7 +63,7 @@ class Toxyz:
         conv.Convert()  # 执行转换操作
         conv.CloseOutFile()  # 转换完成后关闭转换后的文件，完成转换
 
-        xyz = File.getdata(path+'/temp02.xyz')
+        xyz = File.read(path+'/temp02.xyz')
         os.remove(path+'/temp02.xyz')
         return xyz
 

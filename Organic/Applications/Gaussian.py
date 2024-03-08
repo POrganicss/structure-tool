@@ -95,7 +95,7 @@ class Gaussian:  # 提交gaussian任务的包，其中不涉及具体的任务�
         path1 = Gaussian.path + "/" + proname + "/" + name + "/" + name + ".xyz"
         path2 = os.getcwd() + "/Temp/" + name + ".xyz"
         Datatransmission.Filetransmission(path1, path2)
-        xyz = File.getdata(path2)
+        xyz = File.read(path2)
         # os.remove(path2)
         return xyz
 
@@ -110,7 +110,7 @@ class Gaussian:  # 提交gaussian任务的包，其中不涉及具体的任务�
         path1 = Gaussian.path + "/" + proname + "/" + name + "/" + name + ".eng"
         path2 = path + "/Temp/" + name + ".eng"
         Datatransmission.Filetransmission(path1, path2)
-        energy = File.getdata(path2)
+        energy = File.read(path2)
 
         # 输出Gibbs free energy
         G = energy.splitlines()[0].split(":")[1]
@@ -133,7 +133,7 @@ class Gaussian:  # 提交gaussian任务的包，其中不涉及具体的任务�
 
         path3 = "C:\\Users\\10282\\gitee\\structure-tool\\Temp\\BozPhos.result"
         Datatransmission.Filetransmission(path1, path2)
-        xyz = File.getdata(path2)
+        xyz = File.read(path2)
         os.remove(path2)
 
         # ----------将服务器运算完的数据导入到本地----------

@@ -10,7 +10,7 @@ class Pdb:
         #2.检查是否又两个相同的配体小分子
         #3.如果有，则进一步检查是否又重复的多肽链然后删除重复的多肽链
         
-        Protein=File.getdata(os.path.join(path,Protein_name+'.pdb'))
+        Protein=File.read(os.path.join(path,Protein_name+'.pdb'))
         new_protein,max_Nosidues_name=Pdb.clean(Protein)
         
         
@@ -31,7 +31,7 @@ class Pdb:
                 +'\n'
             )
             
-        #return File.getdata(os.path.join(path,Protein_name+"_receptor.oeb.gz"))
+        #return File.read(os.path.join(path,Protein_name+"_receptor.oeb.gz"))
         
     def get_receptors(path,Protein_names:list):
         #Protein_names = File.getfile_name(path,'pdb')#获取该路径下所有pdb文件名字
@@ -83,7 +83,7 @@ class Pdb:
 
         # 如果PDB中只有一条链，则不进行修改，直接返回原始PDB文本
         if len(chains_with_ligands) + len(chains_without_ligands) == 1:
-            return File.getdata(Protein_path)
+            return File.read(Protein_path)
 
         # 优先选择包含小分子的链，如果没有，则随机选择一个链
         if chains_with_ligands:

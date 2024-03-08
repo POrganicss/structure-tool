@@ -182,7 +182,7 @@ class Xyz:
         conv.Convert()  # 执行转换操作
         conv.CloseOutFile()  # 转换完成后关闭转换后的文件，完成转换
 
-        sdf = File.getdata(path+'/temp02.sdf')[:-1]
+        sdf = File.read(path+'/temp02.sdf')[:-1]
         # print(sdf)
         os.remove(path+'/temp02.sdf')
         return sdf

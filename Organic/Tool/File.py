@@ -1,10 +1,10 @@
 import os
 from openbabel import openbabel
-import glob
-
 import psutil
 #提供数据的读取和保存
 class File:
+    
+    
     def save(path,*args):
         match path.split('.')[-1].lower():  # 根据文件扩展名判断
             case 'xlsx' | 'xls':
@@ -14,7 +14,6 @@ class File:
                 if len(args) > 1 or (isinstance(args[0][0], list) and len(args[0]) > 1):
                     if isinstance(args[0][0], list) and len(args[0]) > 1:
                         args = args[0]
-
                     maxnum = max(len(a) for a in args)
                     for a in args:
                         while len(a) < maxnum:
@@ -60,19 +59,31 @@ class File:
                     case elements if all(isinstance(el, list) for el in elements):
                         return "四:多个元素且都是list类型"
                     case _:
-                        return "五:其他情况"
-                
-                
-                #判断args是否只有一个数据，且第一个数据是不是str类型
-                if isinstance(args[0], str):
-                    
-          
-    def getdata(filename):
-        filename = os.path.normpath(filename)
-        with open(filename,'r',encoding='utf-8')as r:
-            content=r.read()
-            r.close
-        return content
+                            with open(path, 'w') as file:
+                                for sublist in lst:
+                                    line = spatheparator.join(map(str, sublist))  # 将子列表中的每个元素转换为字符串并用分隔符连接
+                                    file.write(line + '\n')
+                 
+                           
+    def read(filename,format="list"):
+        match format:
+            case "list":
+                with open(filename, 'r') as f:
+                    data = f.readlines()
+                    f.close()
+                return data
+            case "str":
+                with open(filename, 'r') as f:
+                    data = f.read()
+                    f.close()
+                return data
+            case "excel":
+                import pandas as pd
+                df = pd.read_excel(filename,header=None)
+                return df.values.tolist()
+            case _:
+                return "未知的格式"
+        
 
     def toexcel(filename, *args):
         import xlsxwriter as xw
