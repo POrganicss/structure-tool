@@ -80,36 +80,14 @@ class File:
             case "excel":
                 import pandas as pd
                 df = pd.read_excel(filename,header=None)
-                return df.values.tolist()
+                if df.shape[0] == 1:
+                    df.iloc[0, :].tolist()#读取第一行
+                elif df.shape[1] == 1:
+                    return df.iloc[:, 0].tolist()#读取第一列
+                else:
+                    return df.values.tolist()
             case _:
                 return "未知的格式"
-        
-
-    def toexcel(filename, *args):
-        import xlsxwriter as xw
-        filename = os.path.normpath(filename)
-        if not filename.lower().endswith(('.xlsx', '.xls')):
-            filename=filename+'.xlsx'
-        workbook = xw.Workbook(filename)
-        worksheet1 = workbook.add_worksheet("Sheet1")
-
-        if len(args) > 1 or (isinstance(args[0][0], list) and len(args[0]) > 1):
-            if isinstance(args[0][0], list) and len(args[0]) > 1:
-                args = args[0]
-
-            maxnum = max(len(a) for a in args)
-            for a in args:
-                while len(a) < maxnum:
-                    a.append(0)
-
-            for i, row_data in enumerate(zip(*args), start=1):
-                worksheet1.write_row(f'A{i}', row_data)
-
-        elif len(args) == 1:
-            for i, data in enumerate(args[0], start=1):
-                worksheet1.write_row(f'A{i}', [data])
-
-        workbook.close()
             
     def getexcel(filename,column_index=0):
         import pandas as pd
@@ -165,3 +143,4 @@ class File:
                 file_list.append(os.path.splitext(os.path.basename(new_file_name))[0])  # 获取不带后缀的文件名并添加到列表中
         return file_list
 
+print(File.read("D:\\BOrganic\\Desktop\\trst.xls",'excel'))
