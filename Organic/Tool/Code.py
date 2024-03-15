@@ -265,3 +265,33 @@ class Code:
         date = str(datetime.date.today()).split('-')
         name_postfix = date[0][2:]+date[1]+date[2]
         return name+'_'+name_postfix
+
+
+    def allocate_resources(total_cores, total_memory, num_tasks):
+        # 初始化每个任务的资源分配
+        allocations = [{'cores': 0, 'memory': 0} for _ in range(num_tasks)]
+
+        # Step 1: 均匀分配核心
+        cores_per_task = total_cores // num_tasks
+        for allocation in allocations:
+            allocation['cores'] += cores_per_task
+        
+        # Step 2: 随机分配剩余的核心
+        remaining_cores = total_cores % num_tasks
+        while remaining_cores > 0:
+            allocation = random.choice(allocations)
+            allocation['cores'] += 1
+            remaining_cores -= 1
+
+        # Step 3: 分配内存
+        memory_per_core = total_memory / total_cores
+        for allocation in allocations:
+            allocation['memory'] = allocation['cores'] * memory_per_core
+
+        # 生成Gaussian所需的资源字符串
+        resource_strings = []
+        for allocation in allocations:
+            resource_string = f"%NProcShared={allocation['cores']}\n%Mem={int(allocation['memory'])}GB"
+            resource_strings.append(resource_string)
+        
+        return resource_strings

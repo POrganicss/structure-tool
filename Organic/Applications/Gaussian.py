@@ -13,7 +13,7 @@ import time
 from alive_progress import alive_bar
 from concurrent import futures
 from concurrent.futures import ThreadPoolExecutor, wait
-
+from Tool.Executor import Executor
 
 class Gaussian:  # 提交gaussian任务的包，其中不涉及具体的任务类型
     path = "/root/chen/Compute"
@@ -149,13 +149,16 @@ class Gaussian:  # 提交gaussian任务的包，其中不涉及具体的任务�
         else:
             return False  # 意外错误
 
+
+
     # 将smile转化为gjf文件并提交到远程服务器，然后监控任务的施行，结束时导出需要的数据
     def runsmile(smile, proname, paramenters):
         try:
-            xyz = Smile.toxyz(smile)
+            xyz = Smile.openbabeltoxyz(smile)
         except:
             print("错误分子：" + smile)
-            # messagebox.showinfo('错误提示', '分子式错误')
+            messagebox.showinfo('错误提示', '分子式错误')
+            raise
         else:
             gjf = Xyz.togjf(xyz, paramenters)
             xyz = Gaussian.run(gjf, proname, paramenters["name"])
@@ -163,159 +166,7 @@ class Gaussian:  # 提交gaussian任务的包，其中不涉及具体的任务�
 
     def runsmiles(smiles, proname, paramenters):
         name = paramenters["name"]
-        xyzs = []
-        with alive_bar(len(smiles)) as bar:
-            for i, smile in enumerate(smiles, start=1):  # 遍历任务
-                paramenters["name"] = Code.getname([name, str(i)])
-                xyz = Gaussian.runsmile(smile, proname, paramenters)
-                xyzs.append(xyz)
-                time.sleep(1)  # 假设这代码部分需要1s
-                bar()  # 显示进度
-
-        return xyzs
-
-    def getitems(gjfs: list, proname: str, indexs: list):
-        items = []
-        for gjf, index in zip(gjfs, indexs):
-            items.append([gjf, proname, index])
-        return items
-
-    def getitemss(gjfs: list, proname: str, paramenters: dict):
-        items = []
-        for gjf in gjfs:
-            items.append([gjf, proname, paramenters])
-        return items
-
-    # 封装多线程调用
-    def runmultsmile(item):
-        xyz = Gaussian.run(item[0], item[1], item[2])
-        return xyz
-
-    # 封装多线程参数
-    """ def getitems(smiles:list,proname:str,paramenters:dict):
-        jobnumber=len(smiles)
-        memsets=Code.memsets(jobnumber)
-        nprocsets=Code.nprocsets(jobnumber)
-        items=[]  
-        for i,smile in enumerate(smiles,start=1):  # 遍历任务
-            paramenters['name']=Code.getname(['proj',str(i)])
-            paramenters['nproc']=nprocsets[i-1]
-            paramenters['mem']=memsets[i-1]
-            xyz=Smile.toxyz(smile)
-            gjf=Xyz.togjf(xyz,paramenters)
-            items.append([gjf,proname,paramenters['name']])
-            
-        return items
-     """
-
-    def runmulgjf(items):
-        return Gaussian.run(items[0], items[1], items[2], 1)
-
-    # 将多个smile转化为gjf文件并提交到远程服务器，然后监控任务的施行，结束时导出需要的数据
-    def runmultsmiles(smiles, proname, paramenters):
-        # paramenters={'cpu':'0-29','mem':'50GB','charge':'0','spin':'1',
-        #'code':'# opt pm6',
-        #'name':'proj'}
-        jobnumber = len(smiles)
-        memsets = Code.memsets(jobnumber)
-        nprocsets = Code.nprocsets(jobnumber)
-        items = []
-        for i, smile in enumerate(smiles, start=1):  # 遍历任务
-            paramenters["name"] = Code.getname(["proj", str(i)])
-            paramenters["nproc"] = nprocsets[i - 1]
-            paramenters["mem"] = memsets[i - 1]
-            xyz = Smile.toxyz(smile)
-            gjf = Xyz.togjf(xyz, paramenters)
-            items.append([gjf, proname, paramenters["name"]])
-            print(smile)
-
-        print("------------gjf生成完成，开始计算------------")
-
-        if jobnumber > 128:
-            pool = ThreadPool(128)
-            pool.map(Gaussian.runmultsmile, items)
-            pool.close()  # 关闭线程池，不再接受线程
-            pool.join()  # 等待线程池中线程全部执行完
-        elif jobnumber < 128:
-            pool = ThreadPool(jobnumber)
-            pool.map(Gaussian.runmultsmile, items)
-            pool.close()  # 关闭线程池，不再接受线程
-            pool.join()  # 等待线程池中线程全部执行完
-
-        # with alive_bar(jobnumber) as bar:
-        #     for i,smile in enumerate(smiles,start=1):  # 遍历任务
-        #         paramenters['name']=Gaussian.getname(paramenters['name'],str(i))
-        #         paramenters['nproc']=nprocsets[i-1]
-        #         paramenters['mem']=memsets[i-1]
-
-        #         if jobnumber>128:
-        #             pool = ThreadPool(128)
-        #             items=[smiles,proname,paramenters]
-
-        #             pool.map(Gaussian.runsmiles,items)
-        #             pool.close()  # 关闭线程池，不再接受线程
-        #             pool.join()  # 等待线程池中线程全部执行完
-
-        #         if jobnumber<128:
-        #             pool = ThreadPool(jobnumber)
-        #             items=[smiles,proname,paramenters]
-        #             pool.map(Gaussian.runsmiles,items)
-        #             pool.close()  # 关闭线程池，不再接受线程
-        #             pool.join()  # 等待线程池中线程全部执行完
-
-        #         xyz=Gaussian.runsmile(smile,proname,paramenters)
-        #         xyzs.append(xyz)
-
-        #         time.sleep(1) # 假设这代码部分需要1s
-        #         bar()  # 显示进度
-
-        # # xyzs=[]
-        # # for i,smile in enumerate(smiles,start=1):
-        # #     xyz=Gaussian.runsmile(smile,[name,str(i)],proname)
-        # #     xyzs.append(xyz)
-
-    def runmultsmiles2(smiles, proname, paramenters):
-        with futures.ThreadPoolExecutor(128) as executor:
-            res = executor.map(Gaussian.runsmiles, smiles)
-
-        return res
-
-    # 利用多线程技术加速运算速度
-    def multrunsmiles(smiles, proname, name="proj"):
-        jobnumber = len(smiles)
-        if jobnumber > 128:
-            pool = ThreadPool(128)
-            pool.map(Gaussian.runsmiles, smiles)
-
-            pool.close()  # 关闭线程池，不再接受线程
-            pool.join()  # 等待线程池中线程全部执行完
-
-        if jobnumber < 128:
-            pool = ThreadPool(jobnumber)
-            paramenters = {
-                "cpu": "0-127",
-                "mem": "8GB",
-                "charge": "0",
-                "spin": "1",
-                "code": "# opt freq B3LYP/6-31g em=gd3bj",
-            }
-            items = [smiles, proname, paramenters]
-            pool.map(Gaussian.runsmiles, items)
-            pool.close()  # 关闭线程池，不再接受线程
-            pool.join()  # 等待线程池中线程全部执行完
-
-    def multrunsmiless(items):
-
-        thread_num = min(127, len(items[0]))
-
-        executor = ThreadPoolExecutor(max_workers=128)  # 实例化线程池，thread_num个线程
-        fs = []  # future列表
-        xyzs = []
-
-        for item in items:
-            fs.append(executor.submit(Gaussian.runmultsmile, item))  # 提交任务
-
-        wait(fs)  # 等待计算结束
-        executor.shutdown()  # 销毁线程池
-
+        Parameters = [{**paramenters, 'name': Code.getname([name, str(i)])} for i in range(1, len(smiles) + 1)]    
+        
+        xyzs=Executor.TestThread(Gaussian.runsmile,smiles,[proname]*len(smiles),Parameters)
         return xyzs

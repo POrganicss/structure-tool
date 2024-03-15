@@ -8,7 +8,7 @@ from Tool.File import File
 class Filter_protein_targets:
     
     def Filter(path):
-        Protein_names = File.getfile_name(path,'pdb')#获取该路径下所有pdb文件名字
+        Protein_names = File.getname(path,'pdb')#获取该路径下所有pdb文件名字
         Pdb.get_receptors(os.path.join(path,"Protein"),Protein_names)#获取所有蛋白质的受体
         
 

@@ -4,7 +4,6 @@ from Tool.Datatransmission import LocalCommand as LC
 from Tool.File import File
 class Pdb:
     
-    
     def get_receptor(path,Protein_name):
         #处理逻辑：1.去除蛋白质中的无机小分子
         #2.检查是否又两个相同的配体小分子
@@ -16,14 +15,16 @@ class Pdb:
         
         #chain=Pdb.simplify_chain(os.path.join(path,Protein_name+'.pdb'))
         Protein_name=Protein_name+"_clean"
+        
         new_protein,max_Nosidues_name=Pdb.clean(Protein)
+        
         File.save(os.path.join(path,Protein_name+'.pdb'),new_protein)
-        print(max_Nosidues_name)
+        
         if Pdb.get_ligand_residue(Protein) is not None:
             LC.execute_command(
                 "pdb2receptor "
                 + " -pdb "
-                + os.path.join(path,  Protein_name+'.pdb')
+                + os.path.join(path, Protein_name+'.pdb')
                 + " -ligand_residue "
                 + max_Nosidues_name
                 + " -receptor "
@@ -34,7 +35,7 @@ class Pdb:
         #return File.read(os.path.join(path,Protein_name+"_receptor.oeb.gz"))
         
     def get_receptors(path,Protein_names:list):
-        #Protein_names = File.getfile_name(path,'pdb')#获取该路径下所有pdb文件名字
+        #Protein_names = File.getname(path,'pdb')#获取该路径下所有pdb文件名字
         for Protein_name in Protein_names:#遍历所有pdb文件名
             Pdb.get_receptor(path,Protein_name)
             

@@ -5,7 +5,6 @@ import numpy as np
 from openbabel import openbabel as ob
 from rdkit import Chem
 from rdkit.Chem import AllChem
-from File import File
 #提供绘图工具
 class Draw:
     
@@ -112,7 +111,3 @@ class Draw:
 
     def draw_dline():
         print()
-        
-a=Draw.draw_PESC([[0,22.02,-5.09,-8.35,-18.34,-37.14,-4.34,-15.82]])
-
-File.save('test.cdxml',a)
