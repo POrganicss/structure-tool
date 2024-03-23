@@ -48,6 +48,45 @@ class Deal:
                 
         return Results
      
+    def getnum(original_position, operations):
+        """
+        计算经过一系列操作后的新位置。
+
+        :param original_position: 原始的位置
+        :param operations: 操作的列表，每个元素是一个元组(operation_type, start_position, affected_char_count, [new_char_count])
+                        其中 operation_type 有 'add', 'remove', 'replace' 三种类型
+                        对于 'replace' 操作，元组将包含四个元素
+        :return: 新的位置
+        """
+        new_position = original_position
+        for operation in operations:
+            operation_type, start_position, affected_char_count = operation[:3]
+            
+            new_char_count = operation[3] if len(operation) > 3 else affected_char_count  # 替换操作的新字符长度，如果未提供，默认为被替换字符的长度
+
+            # 增加操作
+            if operation_type == 'add' and start_position <= original_position:
+                new_position += new_char_count
+            # 减少操作
+            elif operation_type == 'remove' and start_position < original_position:
+                # 如果原始位置在减少范围之后，减少其位置，但不会小于起始位置
+                if original_position > start_position + affected_char_count:
+                    new_position -= affected_char_count
+                else:
+                    new_position = max(start_position, new_position - affected_char_count)
+            # 替换操作
+            elif operation_type == 'replace' and start_position < original_position:
+                # 如果原始位置在被替换区域之内或刚好在末端，其位置会根据新字符数调整
+                if start_position + affected_char_count > original_position:
+                    # 如果原始位置在被替换区域内部，它会移动到替换操作开始处，然后加上新字符的长度
+                    new_position = start_position + min(original_position - start_position, new_char_count)
+                elif start_position + affected_char_count <= original_position:
+                    # 如果原始位置在替换区域之后，我们需要调整位置，减去被替换的字符数，加上新的字符数
+                    new_position += new_char_count - affected_char_count
+
+        return new_position
+     
+     
     def getsmiles(skeleton:str, positions:list, Fragments:list, brackets:list):
         
         Result = [skeleton]
@@ -157,59 +196,7 @@ class Deal:
                 # 没有绑定关系，正常添加
                 new_substituents_lists.append([(sub,) for sub in substituents])
         return new_substituents_lists
-
-
-    def generate_smiles_combinationss(skeleton, substitution_positions, substituents_lists, bracket_flags,link):
-        all_combinations = list(itertools.product(*substituents_lists))  # 将迭代器转换为列表
-        
-        for num in binding_map.keys():
-            if num in substitution_positions:
-                
-                substitution_positions.remove(num)
-        binding_map={}
-        
-        def process_combination(comb):
-            local_new_smile = renumbered_skeleton
-            local_offset = 0
-            local_next_num = next_num  # 为每个线程创建独立的next_num
-            
-            print(comb)
-            #com：取代基
-            for position,substituent, flag in zip(substitution_positions,comb,bracket_flags):
-                    #1.主取代基和次取代基完全一样。
-                    
-                    #2.主取代基和次取代基都不一样，但是相互绑定。出现一个必然出现对应的一个
-                    renumbered_sub, local_next_num = Deal.reorder_smiles(substituent, local_next_num)
-                    
-                    insert_str = f"({renumbered_sub})" if flag == 1 else renumbered_sub# 根据标志决定是否加括号
-                    
-                    insert_pos = position - 1 + local_offset  # 将化学位置转换为从0开始的索引，并考虑偏移量
-                    
-                    local_new_smile = local_new_smile[:insert_pos] + insert_str + local_new_smile[insert_pos:]
-
-                    local_offset += len(insert_str)
-                    
-                    binding_position = binding_map.get(position)
-                    if binding_position and substituent != comb[substitution_positions.index(binding_position)]:
-                        # 插入绑定的取代基
-                        binding_sub = comb[substitution_positions.index(binding_position)]
-                        renumbered_binding_sub, _ = Deal.reorder_smiles(binding_sub)
-                        binding_insert_str = f"({renumbered_binding_sub})" if bracket_flags[substitution_positions.index(binding_position)] == 1 else renumbered_binding_sub
-                        binding_insert_pos = binding_position - 1 + local_offset
-                        local_new_smile = local_new_smile[:binding_insert_pos] + binding_insert_str + local_new_smile[binding_insert_pos:]
-                        local_offset += len(binding_insert_str)
-
-                    
-                    
-                    
-            return local_new_smile
-
-        # 使用ThreadPoolExecutor来并发处理所有组合
-        all_combinations = list(itertools.product(*substituents_lists))  # 将迭代器转换为列表
-        
-        
-        return Executor.ThreadExecutor(process_combination, all_combinations)
-    
+ 
     def generate_smiles_combinations(skeleton, substitution_positions, substituents_lists, bracket_flags,linked_positions):
         def process_combination(comb):
             local_new_smile = skeleton
@@ -234,14 +221,138 @@ class Deal:
         return [process_combination(comb) for comb in all_combinations]
     
     
+    def addgroup(smiles,operationss,positions,group):
+         # 检查输入列表长度是否相同
+        if len(smiles) != len(positions):
+            raise ValueError("The length of 'smiles' and 'positions' must be the same.")
+        # 更新后的 SMILES 列表
+        updated_smiles = []
+        # 遍历 SMILES 和对应的插入位置
+        for sm, pos,op in zip(smiles, positions,operationss):
+            pos=Deal.getnum(pos,op)
+            # 检查插入位置是否在合理范围内
+            if pos < 0 or pos > len(sm):
+                raise ValueError("The insertion position is out of range.")
+            sm,num=Deal.reorder_smiles(sm)
+            group_new=Deal.reorder_smiles(group,num)
+            # 在指定位置插入基团
+            new_sm = sm[:pos] + group_new + sm[pos:]
+            updated_smiles.append(new_sm)
+            op.append(('add',pos,len(group_new)))
+        # 返回更新后的 SMILES 列表
+        return updated_smiles,operationss
+        
+    def removegroup(smiles,operationss,positions,group):
+        # 检查输入列表长度是否相同
+        if len(smiles) != len(positions):
+            raise ValueError("The length of 'smiles' and 'positions' must be the same.")
+
+        # 更新后的 SMILES 列表
+        updated_smiles = []
+        
+        # 遍历 SMILES 和对应的插入位置
+        for sm, pos, op in zip(smiles, positions, operationss):
+            pos = Deal.getnum(pos, op)  # 获取经过之前操作更新后的位置
+            # 检查插入位置是否在合理范围内
+            if pos < 0 or pos + len(group) > len(sm):
+                raise ValueError("The removal position is out of range.")
+            
+            # 检查是否确实为指定的基团
+            if sm[pos:pos+len(group)] != group:
+                raise ValueError("The specified group does not match the group at the given position.")
+            
+            # 移除指定位置的基团
+            new_sm = sm[:pos] + sm[pos+len(group):]
+            updated_smiles.append(new_sm)
+
+            # 记录这一操作
+            op.append(('remove', pos, len(group)))
+
+        # 返回更新后的 SMILES 列表
+        return updated_smiles, operationss
     
+    def replacegroup(smiles, operationss, positions, old_group, new_group):
+        # 检查输入列表长度是否相同
+        if len(smiles) != len(positions):
+            raise ValueError("The length of 'smiles' and 'positions' must be the same.")
+        
+        # 更新后的 SMILES 列表
+        updated_smiles = []
+        
+        # 遍历 SMILES 和对应的插入位置
+        for sm, pos, op in zip(smiles, positions, operationss):
+            pos = Deal.getnum(pos, op)  # 获取经过之前操作更新后的位置
+            # 检查替换位置是否在合理范围内
+            if pos < 0 or pos + len(old_group) > len(sm):
+                raise ValueError("The replacement position is out of range.")
+            
+            # 检查是否确实为指定的基团
+            if sm[pos:pos+len(old_group)] != old_group:
+                raise ValueError("The specified group does not match the group at the given position.")
+            
+            # 替换指定位置的基团
+            new_sm = sm[:pos] + new_group + sm[pos+len(old_group):]
+            updated_smiles.append(new_sm)
 
-R1 = ['', 'C', 'O', 'N']
-R2 = ['', 'F', 'Cl', 'Br', 'I']
-R3 = ['', 'C(=O)O', 'C(=O)OC', 'C(=O)OCC', 'C(=O)OC(C)(C)C']
-# 总的分子数为4x5x5=100
-#R1=Deal.generate_smiles_combinationss('C1=CC=CC=C1', [2, 4, 5], [R1, R2, R3],[1,1,1],[])
+            # 记录这一操作
+            op.append(('replace', pos, len(old_group), len(new_group)))
 
-#R1=Deal.generate_smiles_combinationss('C1=CC=CC=C1', [2, 4, 5], [R1, R1, R1],[1,1,1])
-a=list(itertools.product(*[R1,R2,R3])) 
+        # 返回更新后的 SMILES 列表和操作列表
+        return updated_smiles, operationss
+    
+    def cyclizegroup(smiles, operationss, positionsA, positionsB):
+        # 检查输入列表长度是否相同
+        if len(smiles) != len(positionsA) or len(smiles) != len(positionsB):
+            raise ValueError("The lengths of 'smiles', 'positionsA' and 'positionsB' must be the same.")
+
+        # 更新后的 SMILES 列表
+        updated_smiles = []
+
+        # 设置环的标记数字，SMILES中通常使用1至9的数字来标记环
+        # 注意：在实际使用中，应确保不与字符串中现有的环数字冲突
+        
+
+        # 遍历 SMILES 和对应的插入位置
+        for idx, (sm, op) in enumerate(zip(smiles, operationss)):
+            posA = Deal.getnum(positionsA[idx], op)  # 获取经过之前操作更新后的位置A
+            posB = Deal.getnum(positionsB[idx], op)  # 获取经过之前操作更新后的位置B
+
+            # 检查插入位置是否在合理范围内
+            if posA < 0 or posA >= len(sm) or posB < 0 or posB >= len(sm):
+                raise Val
+            _,cyueError("The cyclization position is out of range.")
+            cle_number = Deal.reorder_smiles(smiles[0])
+            
+            # 在指定位置插入环化标记
+            new_sm = sm[:posA] + f"{sm[posA]}{cycle_number}" + sm[posA + 1:]
+            new_sm = new_sm[:posB] + f"{new_sm[posB]}{cycle_number}" + new_sm[posB + 1:]
+            updated_smiles.append(new_sm)
+
+            # 记录这一操作
+            op.append(('cyclize', posA, 1))  # 这里'1'表示添加了一个标记
+            op.append(('cyclize', posB, 1))
+
+            # 可能需要为下一个环使用不同的数字
+            cycle_number = (cycle_number % 9) + 1  # 循环使用1到9的数字
+
+        # 返回更新后的 SMILES 列表和操作列表
+        return updated_smiles, operationss
+        
+        
+        
+    
+# R1 = ['', 'C', 'O', 'N']
+# R2 = ['', 'F', 'Cl', 'Br', 'I']
+# R3 = ['', 'C(=O)O', 'C(=O)OC', 'C(=O)OCC', 'C(=O)OC(C)(C)C']
+# # 总的分子数为4x5x5=100
+# #R1=Deal.generate_smiles_combinationss('C1=CC=CC=C1', [2, 4, 5], [R1, R2, R3],[1,1,1],[])
+
+# #R1=Deal.generate_smiles_combinationss('C1=CC=CC=C1', [2, 4, 5], [R1, R1, R1],[1,1,1])
+# a=list(itertools.product(*[R1,R2,R3])) 
+# pricnt(a)
+
+
+a=Deal.getnum(3,[])
 print(a)
+
+

@@ -4,6 +4,7 @@ from alive_progress import alive_bar
 
 class Executor:
     
+    
     def ThreadExecutor(function_or_name, *args,max_workers=''):
         import concurrent.futures
         
@@ -47,8 +48,16 @@ class Executor:
                         new_future = executor.submit(_function, *new_params)
                         futures[new_future] = running_tasks
                         running_tasks += 1
-        return results
-
+        
+        if results and isinstance(results[0], tuple):
+            # 如果函数返回多个值，则将相同位置的输出合并到各自的列表中
+            #num_outputs = len(results[0])
+            organized_results = tuple([list(output) for output in zip(*results)])
+            return organized_results
+        else:
+            # 如果函数返回单一值，则直接返回结果列表
+            return results
+       
     def ProcessExecutor(function_or_name, *args,max_workers=''):
         from concurrent.futures import ProcessPoolExecutor, as_completed
         import multiprocessing
@@ -99,6 +108,51 @@ class Executor:
 
         return results
     
+    def CudaExecutor(function_or_name, *args, batch_size=256, block_size=256):
+        from numba import cuda
+        import numpy as np
+        import concurrent.futures
+        import math
+        """
+        改进的GPU执行器，模仿ThreadExecutor的逻辑，支持动态分批调度任务到GPU。
+        
+        :param function: 被@cuda.jit装饰过的CUDA函数。
+        :param args_list: 包含每个任务参数的列表。
+        :param batch_size: 每批处理的任务数量。
+        :param block_size: CUDA内核的线程块大小。
+        """
+        total_tasks = len(args)
+        tasks_submitted = 0  # 已提交的任务计数
+        results = [None] * total_tasks  # 初始化结果列表
+        
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = {}
+
+            while tasks_submitted < total_tasks or futures:
+                # 计算本批次应提交的任务数
+                tasks_to_submit = min(batch_size - len(futures), total_tasks - tasks_submitted)
+                
+                # 提交新的一批任务
+                for _ in range(tasks_to_submit):
+                    if tasks_submitted < total_tasks:
+                        gpu_args = function_or_name(args[tasks_submitted])
+                        future = executor.submit(function, *gpu_args)
+                        futures[future] = tasks_submitted
+                        tasks_submitted += 1
+                
+                # 等待任一任务完成
+                done, _ = concurrent.futures.wait(futures.keys(), return_when=concurrent.futures.FIRST_COMPLETED)
+                
+                for future in done:
+                    index = futures.pop(future)
+                    try:
+                        results[index] = future.result()
+                    except Exception as e:
+                        print(f"Exception in task {index}: {e}")
+                        results[index] = None
+
+        return results
+        
     def TestProcess(function_or_name, *args):
         start_time = time.time()
         Executor.ProcessExecutor(function_or_name, *args)
@@ -184,7 +238,6 @@ class Executor:
         else:
             print(f"多线程更快，耗时 {thread_time} 秒，将使用多线程执行器。")
             return Executor.ThreadExecutor
-
 
 
     def GaussianTgread(function_or_name, *args,max_workers=4, total_cores=8):

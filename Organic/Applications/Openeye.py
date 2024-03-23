@@ -1,15 +1,14 @@
-import os
 import __init__
-from Format.Pdb import Pdb
-from Format.Sdf import Sdf
-from Tool.Datatransmission import LocalCommand
-from Tool.File import File
-from Format.Pdf import Pdf
 import os
 import shlex
+from Tool.Executor import Executor
 class Openeye:
     #分子对接
     def run(path, Ligands_name, Protein_name, nproc):
+        from Tool.Datatransmission import LocalCommand
+        from Tool.File import File
+        from Format.Sdf import Sdf
+        from Format.Pdb import Pdb
         # 生成openeye命令
         command = []
         # -----------------------新建项目文件夹-----------------------#
@@ -47,116 +46,55 @@ class Openeye:
         LocalCommand.execute_command(''.join(command))
         print("对接结果生成完成！")
 
-    def get_score(path):
-        print('1')
+    def get_score(path): # type: ignore
+        from Format.Pdf import Pdf
         try:
-            # 假设Pdf类在其他地方定义，并具有必要的方法
-            pages = Pdf.get_pages(path)
-            print(pages)
+            if os.path.isfile(path):
+                pages = Pdf.get_pages(path)
         except Exception as e:
             print(f"访问PDF页面时出错: {e}")
             return []
-        print('2')
-        scores = []
-        for page in pages:
+        T_scores = {key: [] for key in ["Molecule Name", "Molecular Weight", "XLogP", "PSA", "Heavy Atoms",
+                                        "Acceptor Count", "Donor Count", "Chelator Count", "Total Score",
+                                        "Shape", "Hydrogen Bond", "Protein Desolvation", "Ligand Desolvation"]}
+        def getpage(page):
             lines = page.splitlines()
             score = {}
-
-            # 改进的数据提取逻辑，增加了错误处理
+            # 提取和存储分子属性
             for i, line in enumerate(lines):
-                try:
-                    if "Molecule Name" in line:
-                        score["Molecule Name"] = lines[i + 1].strip()
-                    elif "Molecular Weight" in line:
-                        score["Molecular Weight"] = lines[i + 1].strip()
-                    elif "XLogP" in line:
-                        score["XLogP"] = lines[i + 1].strip()
-                    elif "PSA" in line:
-                        score["PSA"] = lines[i + 1].strip()
-                    elif "Heavy Atoms" in line:
-                        score["Heavy Atoms"] = lines[i + 1].strip()
-                    elif "Acceptor Count" in line:
-                        score["Acceptor Count"] = lines[i + 1].strip()
-                    elif "Donor Count" in line:
-                        score["Donor Count"] = lines[i + 1].strip()
-                    elif "Chelator Count" in line:
-                        score["Chelator Count"] = lines[i + 1].strip()
-                except IndexError:
-                    # 处理标签后数据缺失的情况
-                    continue
-
-            # 改进的分数读取逻辑，增加了错误处理
-            for line in lines:
-                try:
-                    if "Total Score" in line:
-                        score["Total Score"] = Pdf.getnum(line)
-                    elif "Shape" in line:
-                        score["Shape"] = Pdf.getnum(line)
-                    elif "Hydrogen Bond" in line:
-                        score["Hydrogen Bond"] = Pdf.getnum(line)
-                    elif "Protein Desolvation" in line:
-                        score["Protein Desolvation"] = Pdf.getnum(line)
-                    elif "Ligand Desolvation" in line:
-                        score["Ligand Desolvation"] = Pdf.getnum(line)
-                except ValueError:
-                    # 处理getnum无法将分数转换为float的情况
-                    continue
-
-            # 验证分数并处理缺失数据
-            try:
-                # 检查score字典中是否存在必要的键，否则跳过这个分数
-                required_keys = ['Shape', 'Hydrogen Bond', 'Protein Desolvation', 'Ligand Desolvation', 'Total Score']
-                if not all(key in score for key in required_keys):
-                    continue  # 如果缺少关键数据，则跳过此分数
-
-                # 计算总分并进行验证
-                _sum = sum(float(score[key]) for key in required_keys[:-1])  # 从总分计算中排除'Total Score'
-                if abs(_sum - float(score["Total Score"])) <= 0.01:
-                    scores.append(score)
-                else:
-                    # 如果总分不匹配，则打印错误详情
-                    print(f"分子错误: {score.get('Molecule Name', '未知')}, 检测到分数不匹配。")
-                    for key in required_keys:
-                        print(f"{key} 数据: {score.get(key, 'N/A')}")
-            except Exception as e:
-                # 处理分数验证中的意外错误
-                print(f"分数验证过程中出现意外错误: {e}")
-
-        return scores
-
-    def trans_score(scores:list):
-        T_scores = {
-        "Molecule Name": [],
-        "Molecular Weight": [],
-        "XLogP": [],    
-        "PSA": [],
-        "Heavy Atoms": [],
-        "Acceptor Count": [],
-        "Donor Count": [],
-        "Chelator Count": [],
-        "Total Score": [],
-        "Shape": [],
-        "Hydrogen Bond": [],
-        "Protein Desolvation": [],
-        "Ligand Desolvation": []
-        }
-        for score in scores:
-            T_scores["Molecule Name"].append(score["Molecule Name"])
-            T_scores["Molecular Weight"].append(score["Molecular Weight"])
-            T_scores["XLogP"].append(score["XLogP"])
-            T_scores["PSA"].append(score["PSA"])
-            T_scores["Heavy Atoms"].append(score["Heavy Atoms"])
-            T_scores["Acceptor Count"].append(score["Acceptor Count"])
-            T_scores["Donor Count"].append(score["Donor Count"])
-            T_scores["Chelator Count"].append(score["Chelator Count"])
-            T_scores["Total Score"].append(score["Total Score"])
-            T_scores["Shape"].append(score["Shape"])
-            T_scores["Hydrogen Bond"].append(score["Hydrogen Bond"])
-            T_scores["Protein Desolvation"].append(score["Protein Desolvation"])
-            T_scores["Ligand Desolvation"].append(score["Ligand Desolvation"])
+                for key in T_scores.keys():
+                    if key in line:
+                        tf,score_value=Pdf.getnum(line)
+                        if not tf:
+                            score[key] = lines[i + 1].strip()
+                            break  # 跳出内循环
+                        else:
+                            score[key] = score_value
+                            break  # 跳出内循环
+            return score
+        scores=Executor.ThreadExecutor(getpage,pages)
         
-        return T_scores
+        # 校验并存储分数数据
+        required_keys = ['Shape', 'Hydrogen Bond', 'Protein Desolvation', 'Ligand Desolvation', 'Total Score']
+        for score in scores:
+            for key in T_scores.keys():
+                T_scores[key].append(score[key])
+            try:
+                if all(key in score for key in required_keys):
+                    # 计算总分并进行验证
+                    _sum = sum(float(score[key]) for key in required_keys[:-1])  # 排除'Total Score'
+                    if abs(_sum - float(score["Total Score"])) > 0.2:
+                        # 总分不匹配，打印错误详情
+                        print("总的误差：" + str(abs(_sum - float(score["Total Score"]))))
+                        print(f"分子错误: {score.get('Molecule Name', '未知')}, 检测到分数不匹配。")
+                        for key in required_keys:
+                            print(f"{key} 数据: {score.get(key, 'N/A')}")
+            except ValueError as e:
+                # 处理分数转换中的错误
+                print(f"分数转换过程中出现错误: {e}")
 
+        return scores,T_scores
+       
     def pyrun():
         from openeye import oechem, oedocking
 
@@ -179,8 +117,3 @@ class Openeye:
 
         # 保存对接结果
         oechem.OEWriteMolecule(oechem.oemolostream("docked_ligand.sdf"), ligand)
-
-
-         
-path='D:\\BOrganic\\Documents\\Tencent Files\\1028209087\\FileRecv\\docking_report.pdf'
-print(Openeye.get_score(path))

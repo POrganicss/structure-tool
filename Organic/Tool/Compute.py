@@ -6,69 +6,118 @@ from scipy.interpolate import interp1d
 from scipy.misc import derivative
 from scipy.integrate import cumtrapz
 
+import numpy as np
+import importlib
 #提供数学的计算工具
 class Compute:
-
+    def get_lib():
+        """动态选择数值计算库。"""
+        try:
+            cp = importlib.import_module('cupy')  # 尝试导入CuPy库
+            return cp if cp.is_available() else np  # 如果CuPy可用，则返回CuPy，否则返回NumPy
+        except ImportError:
+            return np  # 如果导入CuPy失败，则退回到NumPy
+    
     # 获取任意两个原子间的距离
     def getdistance(coords1, coords2):
-        # 使用zip将两个坐标列表的对应元素组合在一起，然后计算平方差，最后求和
-        squared_diff = sum((p2 - p1)**2 for p1,p2 in zip(coords1, coords2))
-        
-        # 使用math.sqrt计算欧几里得距离
-        distance = math.sqrt(squared_diff)
-        
-        return distance
+        """计算两个原子之间的欧几里得距离。"""
+        xp = Compute.get_lib()  # 确定使用NumPy或CuPy
+        squared_diff = xp.sum((coord2 - coord1)**2 for coord1, coord2 in zip(coords1, coords2))  # 计算坐标差的平方和
+        distance = xp.sqrt(squared_diff)  # 计算距离的平方根
+        return distance.get() if xp != np else distance  # 如果使用CuPy，则需要使用get()方法获取值
 
     # 获取任意三点构成角的角度
     def getangle(coords1, coords2, coords3):
-        # 计算两个向量
-        vector1 = np.array(coords1) - np.array(coords2)
-        vector2 = np.array(coords3) - np.array(coords2)
-        
-        # 计算点积和叉积
-        dot_product = np.dot(vector1, vector2)
-        cross_product = np.linalg.norm(np.cross(vector1, vector2))
-        
-        # 计算角度
-        cos_theta = dot_product / (np.linalg.norm(vector1) * np.linalg.norm(vector2))
-        sin_theta = cross_product / (np.linalg.norm(vector1) * np.linalg.norm(vector2))
-        
-        # 使用反三角函数计算角度值
-        theta_rad = np.arctan2(sin_theta, cos_theta)
-        theta_deg = np.degrees(theta_rad)
-        
-        return theta_deg 
+        """计算由三个原子形成的角度。"""
+        xp = Compute.get_lib()  # 确定使用NumPy或CuPy
+        vector_a = xp.array(coords1) - xp.array(coords2)  # 计算第一个向量
+        vector_b = xp.array(coords3) - xp.array(coords2)  # 计算第二个向量
+        dot_prod = xp.dot(vector_a, vector_b)  # 计算两个向量的点积
+        cross_prod_magnitude = xp.linalg.norm(xp.cross(vector_a, vector_b))  # 计算两个向量的叉积的模长
+        cos_angle = dot_prod / (xp.linalg.norm(vector_a) * xp.linalg.norm(vector_b))  # 计算余弦值
+        sin_angle = cross_prod_magnitude / (xp.linalg.norm(vector_a) * xp.linalg.norm(vector_b))  # 计算正弦值
+        angle_rad = xp.arctan2(sin_angle, cos_angle)  # 通过arctan2得到角度的弧度值
+        return xp.degrees(angle_rad).get() if xp != np else xp.degrees(angle_rad)  # 将弧度转换为度并返回
+
 
     # 获取任意四点构成的二面角度
     def getdihedral(coords1, coords2, coords3, coords4):
-        # 计算连接向量
-        vector_ji = np.array(coords2) - np.array(coords1)
-        vector_kj = np.array(coords3) - np.array(coords2)
-        vector_lk = np.array(coords4) - np.array(coords3)
-
-        # 计算法向量并归一化
-        normal_vector_1 = np.cross(vector_ji, vector_kj)
-        normal_vector_1 /= np.linalg.norm(normal_vector_1)
-
-        normal_vector_2 = np.cross(vector_lk, vector_kj)
-        normal_vector_2 /= np.linalg.norm(normal_vector_2)
-
-        # 计算辅助向量并归一化
-        cross_product_m1 = np.cross(normal_vector_1, vector_kj)
-        cross_product_m1 /= np.linalg.norm(vector_kj)
-
-        # 计算点乘
-        dot_product_x = np.dot(normal_vector_1, normal_vector_2)
-        dot_product_y = np.dot(cross_product_m1, normal_vector_2)
-
-        # 计算夹角
-        dihedral_angle_rad = np.arctan2(dot_product_y, dot_product_x)
-        dihedral_angle_deg = -180.0 - np.degrees(dihedral_angle_rad)
+        """计算由四个原子形成的二面角。"""
+        xp = Compute.get_lib()  # 确定使用NumPy或CuPy
         
-        # 调整夹角范围
-        dihedral_angle_deg = (dihedral_angle_deg + 180.0) % 360.0 - 180.0
-        return dihedral_angle_deg
+        vector_ji = xp.array(coords2) - xp.array(coords1)  # 计算第一个向量
+        vector_kj = xp.array(coords3) - xp.array(coords2)  # 计算第二个向量
+        vector_lk = xp.array(coords4) - xp.array(coords3)  # 计算第三个向量
+        
+        normal_vector1 = xp.cross(vector_ji, vector_kj)  # 计算第一个平面的法向量
+        normal_vector1 /= xp.linalg.norm(normal_vector1)  # 归一化第一个法向量
+        normal_vector2 = xp.cross(vector_lk, vector_kj)  # 计算第二个平面的法向量
+        normal_vector2 /= xp.linalg.norm(normal_vector2)  # 归一化第二个法向量
+        
+        cross_product_m1 = xp.cross(normal_vector1, vector_kj)  # 计算辅助向量
+        cross_product_m1 /= xp.linalg.norm(vector_kj)  # 归一化辅助向量
+        
+        x_dot = xp.dot(normal_vector1, normal_vector2)  # 计算法向量间的点积
+        y_dot = xp.dot(cross_product_m1, normal_vector2)  # 计算辅助向量与法向量的点积
+        
+        dihedral_rad = xp.arctan2(y_dot, x_dot)  # 计算二面角的弧度值
+        
+        dihedral_deg = -180.0 - xp.degrees(dihedral_rad)  # 将弧度转换为度，并调整范围
+        dihedral_deg = (dihedral_deg + 180.0) % 360.0 - 180.0  # 确保二面角的值在-180到180度之间
+        return dihedral_deg.get() if xp != np else dihedral_deg  # 返回二面角的度数值
     
+    
+    def getmatrix(xyz, rvar=True, avar=True, dvar=True):
+        from Format.Xyz import Xyz  # 导入Xyz类
+        from scipy.spatial.distance import cdist  # 从SciPy库导入cdist函数，用于计算距离矩阵
+        
+        xp = Compute.get_lib()  # 获取合适的数值计算库（NumPy或CuPy）
+        atomnames, xyzs = Xyz.getcoords(xyz)  # 从Xyz对象获取原子名和坐标
+        xyzarr = xp.zeros([len(xyzs), 3])  # 初始化一个适当大小的数组，用于存储坐标
+
+        # 转换数据格式：确保每个原子的坐标都被正确填充到xyzarr数组中
+        for i, xyz in enumerate(xyzs):
+            xyzarr[i, :] = xp.asarray(xyz)  # 转换每个坐标为适用的数值数组并存储
+
+        # 使用cdist计算所有原子之间的距离矩阵，注意需要将数据转换为NumPy数组，因为cdist不接受CuPy数组
+        distmat = cdist(xyzarr.get() if xp != np else xyzarr, xyzarr.get() if xp != np else xyzarr)
+
+        # 初始化列表，用于存储分子结构参数
+        rlist, alist, dlist = [], [], []  # 分别用于存储键长、键角和二面角
+        matrix = []  # 用于存储输出结果的矩阵
+
+        npart, ncoord = xyzarr.shape  # 获取原子总数和坐标维度
+        
+
+        if npart > 0:  # 如果有原子存在
+            matrix.append(atomnames[0])  # 添加第一个原子名称
+            if npart > 1:  # 如果至少有两个原子
+                rlist.append(distmat[0][1])  # 添加第一个原子到第二个原子的距离
+                matrix.append(f'{atomnames[1]:<3s} {1:>4d}  {"R1":>11s}')  # 格式化并添加第二个原子信息
+
+                if npart > 2:  # 如果至少有三个原子
+                    rlist.append(distmat[0][2])  # 添加第一个原子到第三个原子的距离
+                    alist.append(Compute.getangle(xyzarr[2], xyzarr[0], xyzarr[1]))  # 计算并添加角度信息
+                    matrix.append(f'{atomnames[2]:<3s} {1:>4d}  {"R2":>11s} {2:>4d}  {"A1":>11s}')  # 格式化并添加第三个原子信息
+
+                    if npart > 3:  # 如果至少有四个原子
+                        for i in range(3, npart):  # 遍历剩余的原子
+                            rlist.append(distmat[i-3][i])  # 添加距离信息
+                            alist.append(Compute.getangle(xyzarr[i], xyzarr[i-3], xyzarr[i-2]))  # 添加角度信息
+                            dlist.append(Compute.getdihedral(xyzarr[i], xyzarr[i-3], xyzarr[i-2], xyzarr[i-1]))  # 添加二面角信息
+                            matrix.append(f'{atomnames[i]:3s} {i-2:>4d}  {"R{i}":>11s} {i-1:>4d}  {"A{i-1}":>11s} {i:>4d}  {"D{i-2}":>11s}')  # 格式化并添加原子信息
+
+        matrix.append('')  # 添加空行作为分隔符
+        for i in range(npart-1):
+            matrix.append('R{:<4d}   {:>11.5f}'.format(i+1, rlist[i]))
+        for i in range(npart-2):
+            matrix.append('A{:<4d}   {:>11.5f}'.format(i+1, alist[i]))
+        for i in range(npart-3):
+            matrix.append('D{:<4d}   {:>11.5f}'.format(i+1, dlist[i]))
+
+
+        return '\n'.join(matrix)  # 将结果列表转换为字符串并返回
+   
         
     def align_complex_structure(simple_coords, simple_connectivity_matrix, complex_coords, complex_connectivity_matrix, core_indices, adjusted_core_coords):
                 
@@ -128,8 +177,6 @@ class Compute:
         
         return Y_int
         
-    
-    
     def integrate_derivative(derivative_data, initial_value=0):
         original_data = [initial_value]
 

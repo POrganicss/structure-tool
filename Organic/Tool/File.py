@@ -136,8 +136,9 @@ class File:
                 data = df.values.tolist() if orientation == 'row' else df.T.values.tolist()
                 non_empty_data.append(data)
         return non_empty_data[0] if len(non_empty_data) == 1 else non_empty_data
-        def getname(path, _format, recursive=False):
-            from pathlib import Path
+    
+    def getname(path, _format, recursive=False):#获取一个文件夹下的某个格式的所有文件
+        from pathlib import Path
         _format = "." + _format.lower()
         file_list = []
         path = Path(path)
@@ -164,32 +165,56 @@ class File:
             for page_num in range(num_pages):
                 contents.append(reader.pages[page_num].extract_text())
         return contents
-    
-    def getname(path,_format):
-        if not os.path.exists(path):
-            print(f"路径 {path} 不存在。")
-            return []  # 如果路径不存在，返回空列表
 
-        _format = "." + _format.lower()  # 确保格式以点开始，并转为小写
-        file_list = []
-        
-        for file in os.listdir(path):
-            if file.lower().endswith(_format):  # 将文件名转换为小写后进行比较
-                file_path = os.path.join(path, file)
-                base_name, ext = os.path.splitext(file)
+    def getsplit(file_name, units_per_file):
+        _, ext = os.path.splitext(file_name)  # 获取文件的扩展名
+        base_name = file_name.rsplit('.', 1)[0]  # 移除文件扩展名以获取基本名称
+
+        # 根据文件扩展名决定分割标记和匹配位置
+        match ext.lower():
+            case '.sdf':
+                split_config = [1, '$$$$']  # SDF文件的标准分子结束标志，匹配结尾
+            case '.txt':
+                split_config = [1, 'NEW_SECTION']  # 假设的文本文件分节标志，匹配结尾
+            case _:
+                raise ValueError(f"Unsupported file format: {ext}")
+
+        match_position, pattern = split_config
+        unit_count = 0  # 记录当前文件的单元数量
+        file_count = 0  # 输出文件的计数
+
+        # 初始化第一个输出文件
+        output_file = f"{base_name}_{file_count}{ext}"
+        outfile = open(output_file, 'w', encoding='utf-8')
+        print(f"File {output_file} has been created.")
+
+        with open(file_name, 'r', encoding='utf-8') as file:
+            for line in file:
+                # 写入当前行到输出文件
+                outfile.write(line)
+
+                # 根据配置决定是检查行的开头还是结尾
+                condition = line.startswith(pattern) if match_position == 0 else line.strip().endswith(pattern)
                 
-                # 如果文件扩展名已经是小写，不需要重命名
-                if ext.lower() == ext:
-                    new_file_name = file
-                else:
-                    new_file_name = base_name + _format  # 创建新文件名
-                    new_file_path = os.path.join(path, new_file_name)
-                    os.rename(file_path, new_file_path)  # 修改文件扩展名为小写
-                file_list.append(base_name)  # 添加不带扩展名的文件名到列表
-        
-        return file_list
-    
-    
+                if condition:
+                    unit_count += 1
+                    if unit_count >= units_per_file:
+                        # 完成当前文件的写入，并开始一个新文件
+                        outfile.close()
+                        file_count += 1  # 增加文件编号
+                        unit_count = 0  # 重置单元计数
+                        output_file = f"{base_name}_{file_count}{ext}"
+                        outfile = open(output_file, 'w', encoding='utf-8')
+                        print(f"File {output_file} has been created.")
+                        
+                        # 如果标志应该在每个文件的开始，且不是第一个文件，写入标志符
+                        if match_position == 0 and file_count > 0:
+                            outfile.write(pattern + '\n')
+
+        outfile.close()  # 关闭最后一个输出文件
+        print(f"Total units processed into {file_count+1} files.")
+
+
     # --------------------文件处理-------------------#
     def copy(Source_path, destination_path, *filenames):
         import shutil

@@ -6,10 +6,18 @@ import fitz
 class Pdf:
 
     def getnum(line):
-        # 使用正则表达式提取数字，包括小数和负数
-        numbers = re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", line)
-        # 将字符串数字转换为实际数字类型
-        return numbers[-1]  
+        # # 使用正则表达式提取数字，包括小数和负数
+        # numbers = re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", line)
+        # # 将字符串数字转换为实际数字类型
+        # return numbers[-1]  
+        # 正则表达式匹配小数、负数（不匹配紧跟在%后的数字）
+        numbers = re.findall(r'(?<!%)(?<![0-9]%)(?<![0-9]%)[-+]?\d*\.?\d+', line)
+        if numbers:
+            # 返回匹配的最后一个数字，需要转换为适当的数值类型
+            last_number = float(numbers[-1]) if '.' in numbers[-1] else int(numbers[-1])
+            return True, last_number
+        else:
+            return False, None
     
     def get_pages(path):
         def extract_text_from_page(page_num):

@@ -116,10 +116,12 @@ class Xyz:
         matrix = []
         atomnames, xyzs = Xyz.getcoords(xyz)
         xyzarr = np.zeros([len(xyzs), 3])
+        
         for i, xyz in enumerate(xyzs):
             xyzarr[i][0] = xyz[0]
             xyzarr[i][1] = xyz[1]
             xyzarr[i][2] = xyz[2]
+            
         distmat = cdist(xyzarr, xyzarr)
 
         npart, ncoord = xyzarr.shape

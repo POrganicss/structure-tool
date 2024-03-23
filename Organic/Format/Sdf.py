@@ -76,4 +76,30 @@ class Sdf:
                 new_modules.append("\n".join(lines))
         return "$$$$".join(new_modules)+"$$$$"+'\n'
     
+    def getsplit(ligands,num=20000):
+        from rdkit import Chem
+        from rdkit.Chem import SDWriter
+        # 读取SDF文件
+        suppl = Chem.SDMolSupplier(ligands)
+        mols = [mol for mol in suppl if mol is not None]  # 过滤掉无法读取的分子
+        
+        total_mols = len(mols)
+        total_files = (total_mols + num - 1) 
+
+        for i in range(total_files):
+            output_file = f"split_{i+1}.sdf"
+            writer = SDWriter(output_file)
+
+            # 计算当前文件应该包含的分子
+            start_index = i * num
+            end_index = min(start_index + num, total_mols)
+
+            # 写入分子到新的SDF文件
+            for j in range(start_index, end_index):
+                writer.write(mols[j])
+            writer.close()
+
+            print(f"File {output_file} has been created with {end_index - start_index} molecules.")
+
+
      

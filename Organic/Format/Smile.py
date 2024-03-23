@@ -90,8 +90,8 @@ class Smile:
             smile_units.append(unit)
         return smile_units
 
-
     def getsmiles(skeleton, positions, Fragments, brackets=[-1]):
+        
         def addgroups(result, position, Fragments, bracket):
             def reorder_smiles(smiles, start_num=1):
                 # 查找所有的环编号（一位数）
@@ -151,7 +151,7 @@ class Smile:
             Result=[item for sublist in Result for item in sublist]
             print(len(Result))
         return Result
-
+    
     # 将smiles转换成xyz文件
     def rdkitoxyz(smile):
         
@@ -233,9 +233,4 @@ class Smile:
     
     def getsdf(smiles):
         return Executor.ThreadExecutor(Smile.openbabeltosdf,smiles)
-    
-R1 = ['', 'C', 'O', 'N']
-R2 = ['', 'F', 'Cl', 'Br', 'I']
-R3 = ['', 'C(=O)O', 'C(=O)OC', 'C(=O)OCC', 'C(=O)OC(C)(C)C']
-# 总的分子数为4x5x5=100
-R1=Smile.getsmiles('C1=CC=CC=C1', [2, 4, 5], [R1, R2, R3], [1, 1, 1])
+
